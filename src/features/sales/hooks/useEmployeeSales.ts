@@ -228,7 +228,7 @@ export const useEmployeeSales = () => {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, [fetchTodaySales, setupRealtimeSubscription]);
+  }, []); // Sin dependencias para evitar re-ejecuciones
 
   return {
     // State

@@ -73,8 +73,9 @@ export class EmployeeSalesService {
 
   async getTodaySales(): Promise<SaleWithDetails[]> {
     try {
+      // Usar la misma función que funciona para admin
       const { data, error } = await supabase
-        .rpc('fn_get_employee_today_sales');
+        .rpc('fn_get_today_sales');
 
       if (error) {
         console.error('Error fetching today sales:', error);

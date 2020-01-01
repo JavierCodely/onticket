@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter, ShoppingCart, TrendingUp, DollarSign, Users, Calendar, Eye, Edit, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -49,8 +49,27 @@ export const SalesView: React.FC = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | 'all'>('all');
   const [selectedStatus, setSelectedStatus] = useState<SaleStatus | 'all'>('all');
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Función memoizada para obtener la fecha local en formato YYYY-MM-DD
+  const getTodayLocal = useCallback(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  // Función para convertir fecha local a UTC (para consultas a la API)
+  const getUTCDate = useCallback((localDate: string) => {
+    // Convertir fecha local a UTC: crear fecha local y obtener su equivalente UTC
+    const [year, month, day] = localDate.split('-').map(Number);
+    const localDateTime = new Date(year, month - 1, day); // Fecha local a medianoche
+    // Obtener el timestamp UTC de esa fecha local
+    const utcDate = new Date(localDateTime.getTime() - localDateTime.getTimezoneOffset() * 60000);
+    return utcDate.toISOString().split('T')[0];
+  }, []);
+
+  const [startDate, setStartDate] = useState(() => getTodayLocal());
+  const [endDate, setEndDate] = useState(() => getTodayLocal());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -145,25 +164,14 @@ export const SalesView: React.FC = () => {
 
   // Cargar ventas cuando cambien los filtros de fecha
   useEffect(() => {
-    const loadFilteredSales = async () => {
-      if (startDate || endDate) {
-        try {
-          await loadSales(startDate || undefined, endDate || undefined);
-        } catch (error) {
-          console.error('Error loading filtered sales:', error);
-        }
-      } else {
-        // Si no hay filtros de fecha, cargar ventas del día actual
-        try {
-          await loadTodaySales();
-        } catch (error) {
-          console.error('Error loading today sales:', error);
-        }
-      }
-    };
+    // Siempre usar loadSales con fechas UTC para consistencia
+    const utcStartDate = startDate ? getUTCDate(startDate) : undefined;
+    const utcEndDate = endDate ? getUTCDate(endDate) : undefined;
 
-    loadFilteredSales();
-  }, [startDate, endDate, loadSales, loadTodaySales]);
+    loadSales(utcStartDate, utcEndDate).catch(error => {
+      console.error('Error loading filtered sales:', error);
+    });
+  }, [startDate, endDate, getUTCDate]);
 
   // Update selected sale when sales data changes
   useEffect(() => {
@@ -440,8 +448,10 @@ export const SalesView: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      setStartDate('');
-                      setEndDate('');
+                      // Usar fecha local para mostrar correctamente en el filtro
+                      const today = getTodayLocal();
+                      setStartDate(today);
+                      setEndDate(today);
                     }}
                     className="text-xs h-8"
                   >
@@ -461,19 +471,25 @@ export const SalesView: React.FC = () => {
                   >
                     Mes
                   </Button>
-                  {(startDate || endDate) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setStartDate('');
-                        setEndDate('');
-                      }}
-                      className="text-xs h-8"
-                    >
-                      Limpiar
-                    </Button>
-                  )}
+                  {(() => {
+                    const today = getTodayLocal();
+                    const isNotToday = startDate !== today || endDate !== today;
+                    return isNotToday && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          // Usar el mismo método que funciona para el botón "Mes"
+                          const today = new Date().toISOString().split('T')[0];
+                          setStartDate(today);
+                          setEndDate(today);
+                        }}
+                        className="text-xs h-8"
+                      >
+                        Limpiar
+                      </Button>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
