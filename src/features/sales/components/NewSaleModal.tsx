@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select';
 import { useProducts } from '../../products/hooks/useProducts';
+import { useEmployeesSimple } from '../../employees/hooks/useEmployeesSimple';
 import { PAYMENT_METHOD_CONFIG, type PaymentMethod } from '../types/sales';
 import { PRODUCT_CATEGORY_CONFIG, type ProductWithStock } from '../../products/types/products';
 
@@ -51,7 +52,10 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   onSave
 }) => {
   const { products, loading: productsLoading } = useProducts();
+  const { employees } = useEmployeesSimple();
   const [employeeName, setEmployeeName] = useState('');
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,6 +67,13 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Filtrar empleados bartender y cajero
+  const availableEmployees = employees.filter(emp =>
+    emp.status === 'active' &&
+    (emp.category === 'bartender' || emp.category === 'cashier') &&
+    emp.full_name.toLowerCase().includes(employeeSearchTerm.toLowerCase())
+  );
+
   const total = saleItems.reduce((sum, item) => sum + item.subtotal, 0);
 
   useEffect(() => {
@@ -71,11 +82,37 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     }
   }, [isOpen]);
 
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowEmployeeDropdown(false);
+    };
+
+    if (showEmployeeDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showEmployeeDropdown]);
+
   const resetForm = () => {
     setEmployeeName('');
+    setEmployeeSearchTerm('');
+    setShowEmployeeDropdown(false);
     setPaymentMethod('cash');
     setSaleItems([]);
     setSearchTerm('');
+  };
+
+  const selectEmployee = (employee: any) => {
+    setEmployeeName(employee.full_name);
+    setEmployeeSearchTerm(employee.full_name);
+    setShowEmployeeDropdown(false);
+  };
+
+  const handleEmployeeInputChange = (value: string) => {
+    setEmployeeSearchTerm(value);
+    setEmployeeName(value);
+    setShowEmployeeDropdown(value.length > 0);
   };
 
   const formatCurrency = (amount: number) => {
@@ -168,15 +205,36 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Información de la venta */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="employeeName">Empleado</Label>
+            <div className="relative">
+              <Label htmlFor="employeeName">Empleado (Bartender/Cajero)</Label>
               <Input
                 id="employeeName"
-                value={employeeName}
-                onChange={(e) => setEmployeeName(e.target.value)}
-                placeholder="Nombre del empleado"
+                value={employeeSearchTerm}
+                onChange={(e) => handleEmployeeInputChange(e.target.value)}
+                placeholder="Buscar empleado..."
                 required
+                onFocus={() => setShowEmployeeDropdown(employeeSearchTerm.length > 0)}
               />
+
+              {showEmployeeDropdown && availableEmployees.length > 0 && (
+                <div
+                  className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {availableEmployees.slice(0, 5).map((employee) => (
+                    <div
+                      key={employee.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                      onClick={() => selectEmployee(employee)}
+                    >
+                      <p className="font-medium">{employee.full_name}</p>
+                      <p className="text-sm text-gray-500 capitalize">
+                        {employee.category === 'bartender' ? 'Bartender' : 'Cajero'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>

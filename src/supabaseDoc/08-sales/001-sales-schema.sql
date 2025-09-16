@@ -172,6 +172,7 @@ $$;
 
 -- 06) Función para crear venta completa
 CREATE OR REPLACE FUNCTION public.fn_create_sale(
+  p_employee_name text,             -- Nombre del empleado que realiza la venta
   p_items jsonb,                    -- Array de items: [{"product_id": "uuid", "quantity": 2, "unit_price": 10.50}]
   p_payment_method payment_method,
   p_payment_details jsonb DEFAULT NULL,
@@ -200,10 +201,18 @@ BEGIN
   -- Primero verificar si es admin
   SELECT fn_current_admin_club_id() IS NOT NULL INTO v_is_admin;
 
+  -- Validar que el employee_name no esté vacío
+  IF p_employee_name IS NULL OR trim(p_employee_name) = '' THEN
+    RAISE EXCEPTION 'El nombre del empleado es requerido';
+  END IF;
+
+  -- Usar el nombre del empleado proporcionado
+  v_employee_name := p_employee_name;
+
   IF v_is_admin THEN
-    -- Es admin, obtener información del admin
-    SELECT a.club_id, a.full_name
-    INTO v_club_id, v_employee_name
+    -- Es admin, obtener club_id del admin
+    SELECT a.club_id
+    INTO v_club_id
     FROM public.admins a
     WHERE a.user_id = auth.uid() AND a.status = 'active';
 
@@ -216,9 +225,9 @@ BEGIN
       RAISE EXCEPTION 'Solo administradores, bartenders y cajeros pueden crear ventas';
     END IF;
 
-    -- Obtener información del empleado
-    SELECT e.club_id, e.full_name
-    INTO v_club_id, v_employee_name
+    -- Obtener club_id del empleado
+    SELECT e.club_id
+    INTO v_club_id
     FROM public.employees e
     WHERE e.user_id = auth.uid() AND e.status = 'active';
 

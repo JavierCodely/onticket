@@ -64,6 +64,7 @@ export const useSales = () => {
 
       const { data, error: createError } = await supabase
         .rpc('fn_create_sale', {
+          p_employee_name: saleData.employee_name,
           p_items: transformedItems,
           p_payment_method: saleData.payment_method,
           p_payment_details: saleData.payment_details || null,
