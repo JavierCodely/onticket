@@ -1,4 +1,4 @@
-import { BarChart3, Users, Settings, Calendar, type LucideIcon } from 'lucide-react';
+import { BarChart3, Users, Settings, Calendar, Package, ShoppingCart, type LucideIcon } from 'lucide-react';
 
 export interface MenuItem {
   id: string;
@@ -13,6 +13,18 @@ export const menuItems: MenuItem[] = [
     title: 'Resumen',
     icon: BarChart3,
     description: 'Vista general del club'
+  },
+  {
+    id: 'products',
+    title: 'Productos',
+    icon: Package,
+    description: 'Gestión de productos y stock'
+  },
+  {
+    id: 'sales',
+    title: 'Ventas',
+    icon: ShoppingCart,
+    description: 'Registro y análisis de ventas'
   },
   {
     id: 'calendar',

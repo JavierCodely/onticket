@@ -3,6 +3,8 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { SidebarProvider, SidebarInset } from '@/shared/components/ui/sidebar';
 import { EmployeesPage } from '@/features/employees/components/EmployeesPage';
 import { CalendarView } from '@/features/calendar';
+import { ProductsView } from '@/features/products';
+import { SalesView } from '@/features/sales';
 import { DashboardSidebar } from './DashboardSidebar';
 import { DashboardHeader } from './DashboardHeader';
 import { OverviewPage } from './OverviewPage';
@@ -16,6 +18,10 @@ export const Dashboard: React.FC = () => {
     switch (activeTab) {
       case 'overview':
         return <OverviewPage admin={admin} user={user} />;
+      case 'products':
+        return <ProductsView />;
+      case 'sales':
+        return <SalesView />;
       case 'calendar':
         return <CalendarView />;
       case 'employees':
