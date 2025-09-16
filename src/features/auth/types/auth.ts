@@ -1,5 +1,7 @@
 import type { User } from '@supabase/supabase-js';
-import type { Admin } from './database';
+import type { Admin } from '@/core/types/database';
+
+export type { Admin };
 
 export interface AuthState {
   user: User | null;
