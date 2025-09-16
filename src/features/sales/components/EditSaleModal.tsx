@@ -118,10 +118,11 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
       });
 
       // Convertir items de la venta a formato editable
-      const items: EditableItem[] = sale.items.map((item, index) => ({
-        id: `item-${index}`, // Usar índice como ID temporal
-        product_id: '', // No tenemos el product_id en la vista
+      const items: EditableItem[] = sale.items.map((item) => ({
+        id: item.id,                    // ID real del sale_item
+        product_id: item.product_id,    // ID real del producto
         product_name: item.product_name,
+        product_sku: item.product_sku,
         quantity: item.quantity,
         unit_price: item.unit_price,
         line_total: item.line_total

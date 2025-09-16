@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingUp, DollarSign, CreditCard, Users, Calendar, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import { PAYMENT_METHOD_CONFIG, type SalesStats as SalesStatsType } from '../types/sales';
+import { PAYMENT_METHOD_CONFIG, type SalesStats as SalesStatsType, type PaymentMethod } from '../types/sales';
 
 interface SalesStatsProps {
   stats: SalesStatsType;
@@ -86,13 +86,13 @@ export const SalesStats: React.FC<SalesStatsProps> = ({ stats }) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {stats.payment_methods.map((method) => {
-              const config = PAYMENT_METHOD_CONFIG[method.payment_method];
-              const percentage = (method.amount / stats.total_sales) * 100;
+            {Object.entries(stats.payment_methods || {}).map(([paymentMethod, data]) => {
+              const config = PAYMENT_METHOD_CONFIG[paymentMethod as PaymentMethod];
+              const percentage = stats.total_amount > 0 ? (data.amount / stats.total_amount) * 100 : 0;
 
               return (
                 <div
-                  key={method.payment_method}
+                  key={paymentMethod}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
@@ -103,9 +103,9 @@ export const SalesStats: React.FC<SalesStatsProps> = ({ stats }) => {
                       {config.label}
                     </Badge>
                     <div>
-                      <p className="font-medium">{formatCurrency(method.amount)}</p>
+                      <p className="font-medium">{formatCurrency(data.amount)}</p>
                       <p className="text-sm text-gray-500">
-                        {method.count} venta{method.count !== 1 ? 's' : ''}
+                        {data.count} venta{data.count !== 1 ? 's' : ''}
                       </p>
                     </div>
                   </div>

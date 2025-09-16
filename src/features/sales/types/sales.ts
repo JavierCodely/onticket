@@ -39,10 +39,14 @@ export interface SaleWithDetails extends Sale {
   employee_category?: string;
   items_count: number;
   items: Array<{
+    id: string;            // ID real del sale_item
+    product_id: string;    // ID del producto
     product_name: string;
+    product_sku?: string;
     quantity: number;
     unit_price: number;
     line_total: number;
+    created_at: string;
   }>;
 }
 

@@ -587,7 +587,34 @@ BEGIN
 END;
 $$;
 
--- 10) Comments
+-- 10) Actualizar vista sales_with_details para incluir IDs de items
+CREATE OR REPLACE VIEW public.sales_with_details AS
+SELECT
+  s.*,
+  e.full_name as employee_full_name,
+  e.category as employee_category,
+  COUNT(si.id) as items_count,
+  ARRAY_AGG(
+    jsonb_build_object(
+      'id', si.id,                    -- ID real del sale_item
+      'product_id', si.product_id,    -- ID del producto
+      'product_name', si.product_name,
+      'product_sku', si.product_sku,
+      'quantity', si.quantity,
+      'unit_price', si.unit_price,
+      'line_total', si.line_total,
+      'created_at', si.created_at
+    ) ORDER BY si.created_at
+  ) as items
+FROM public.sales s
+LEFT JOIN public.employees e ON e.user_id = s.employee_id
+LEFT JOIN public.sale_items si ON si.sale_id = s.id
+GROUP BY s.id, e.full_name, e.category;
+
+-- 10.1) Mantener RLS en la vista actualizada
+ALTER VIEW public.sales_with_details SET (security_invoker = on);
+
+-- 11) Comments
 /*
 NUEVAS FUNCIONES PARA EDICIÓN DE VENTAS:
 
