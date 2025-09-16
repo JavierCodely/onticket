@@ -30,10 +30,10 @@ export const SalesStats: React.FC<SalesStatsProps> = ({ stats }) => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total del Período</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(stats.total_sales)}
+                  {formatCurrency(stats.total_amount)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {stats.total_count} ventas realizadas
+                  {stats.total_sales} ventas realizadas
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-600" />
@@ -130,7 +130,7 @@ export const SalesStats: React.FC<SalesStatsProps> = ({ stats }) => {
         <CardContent>
           <div className="space-y-3">
             {stats.top_employees.map((employee, index) => {
-              const percentage = (employee.amount / stats.total_sales) * 100;
+              const percentage = (employee.amount / stats.total_amount) * 100;
 
               return (
                 <div

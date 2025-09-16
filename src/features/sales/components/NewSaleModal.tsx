@@ -7,6 +7,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
@@ -176,7 +177,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
         items: saleItems.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity,
-          price: item.price
+          unit_price: item.price
         }))
       });
       onClose();
@@ -200,6 +201,9 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
             <ShoppingCart className="h-5 w-5" />
             Nueva Venta
           </DialogTitle>
+          <DialogDescription>
+            Selecciona empleado, productos y método de pago para registrar una nueva venta
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

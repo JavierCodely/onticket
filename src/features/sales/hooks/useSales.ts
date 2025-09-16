@@ -57,13 +57,16 @@ export const useSales = () => {
   const createSale = useCallback(async (saleData: any) => {
     try {
       setError(null);
+      console.log('Creating sale with data:', saleData);
 
       // Transformar items al formato esperado por la función SQL
       const transformedItems = saleData.items.map((item: any) => ({
         product_id: item.product_id,
         quantity: item.quantity,
-        unit_price: item.price // Cambiar 'price' a 'unit_price'
+        unit_price: item.unit_price || item.price // Soportar ambos formatos
       }));
+
+      console.log('Transformed items:', transformedItems);
 
       const { data, error: createError } = await supabase
         .rpc('fn_create_sale', {
@@ -239,37 +242,8 @@ export const useSales = () => {
     return unsubscribe;
   }, [setupRealtimeSubscription]);
 
-  return {
-    // Estado
-    sales,
-    todaySales,
-    loading,
-    error,
-    stats,
-
-    // Acciones
-    fetchSales,
-    fetchTodaySales,
-    createSale,
-    fetchStats,
-
-    // Utilidades
-    filterSales,
-    getSalesByEmployee,
-
-    // Limpiar error
-    clearError: () => setError(null),
-
-    // Nuevas funciones para edición
-    updateSale,
-    addSaleItem,
-    updateSaleItem,
-    removeSaleItem,
-    cancelRefundSale
-  };
-
   // Actualizar venta
-  async function updateSale(params: {
+  const updateSale = useCallback(async (params: {
     saleId: string;
     employeeName?: string;
     paymentMethod?: PaymentMethod;
@@ -278,7 +252,7 @@ export const useSales = () => {
     notes?: string;
     status?: SaleStatus;
     refundReason?: string;
-  }) {
+  }) => {
     try {
       setError(null);
 
@@ -307,10 +281,10 @@ export const useSales = () => {
       setError(err instanceof Error ? err.message : 'Error al actualizar venta');
       throw err;
     }
-  }
+  }, [fetchTodaySales, fetchSales, fetchStats]);
 
   // Agregar item a venta
-  async function addSaleItem(saleId: string, item: CreateSaleItem & { unit_price: number }) {
+  const addSaleItem = useCallback(async (saleId: string, item: CreateSaleItem & { unit_price: number }) => {
     try {
       setError(null);
 
@@ -335,10 +309,10 @@ export const useSales = () => {
       setError(err instanceof Error ? err.message : 'Error al agregar item');
       throw err;
     }
-  }
+  }, [fetchTodaySales, fetchSales, fetchStats]);
 
   // Actualizar item de venta
-  async function updateSaleItem(itemId: string, quantity?: number, unitPrice?: number) {
+  const updateSaleItem = useCallback(async (itemId: string, quantity?: number, unitPrice?: number) => {
     try {
       setError(null);
 
@@ -362,10 +336,10 @@ export const useSales = () => {
       setError(err instanceof Error ? err.message : 'Error al actualizar item');
       throw err;
     }
-  }
+  }, [fetchTodaySales, fetchSales, fetchStats]);
 
   // Eliminar item de venta
-  async function removeSaleItem(itemId: string) {
+  const removeSaleItem = useCallback(async (itemId: string) => {
     try {
       setError(null);
 
@@ -387,10 +361,10 @@ export const useSales = () => {
       setError(err instanceof Error ? err.message : 'Error al eliminar item');
       throw err;
     }
-  }
+  }, [fetchTodaySales, fetchSales, fetchStats]);
 
   // Cancelar o reembolsar venta
-  async function cancelRefundSale(saleId: string, action: 'cancelled' | 'refunded', reason: string) {
+  const cancelRefundSale = useCallback(async (saleId: string, action: 'cancelled' | 'refunded', reason: string) => {
     try {
       setError(null);
 
@@ -414,5 +388,34 @@ export const useSales = () => {
       setError(err instanceof Error ? err.message : 'Error al cancelar/reembolsar venta');
       throw err;
     }
-  }
+  }, [fetchTodaySales, fetchSales, fetchStats]);
+
+  return {
+    // Estado
+    sales,
+    todaySales,
+    loading,
+    error,
+    stats,
+
+    // Acciones
+    fetchSales,
+    fetchTodaySales,
+    createSale,
+    fetchStats,
+
+    // Utilidades
+    filterSales,
+    getSalesByEmployee,
+
+    // Limpiar error
+    clearError: () => setError(null),
+
+    // Nuevas funciones para edición
+    updateSale,
+    addSaleItem,
+    updateSaleItem,
+    removeSaleItem,
+    cancelRefundSale
+  };
 };
