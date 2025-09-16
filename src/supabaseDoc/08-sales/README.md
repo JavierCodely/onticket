@@ -1,14 +1,15 @@
-# Sistema de Ventas en Tiempo Real
+# Sistema de Ventas con Edición para Administradores
 
-Este directorio contiene la implementación completa del sistema de ventas con actualizaciones en tiempo real para OnTicket.
+Este directorio contiene la implementación completa del sistema de ventas con actualizaciones en tiempo real y funcionalidad de edición para OnTicket.
 
 ## Descripción General
 
-El sistema registra todas las ventas realizadas por empleados, actualiza automáticamente el stock de productos y envía notificaciones en tiempo real para monitoreo inmediato.
+El sistema registra todas las ventas realizadas por empleados, actualiza automáticamente el stock de productos, envía notificaciones en tiempo real y permite a los administradores editar ventas existentes de manera segura.
 
 ## Estructura de Archivos
 
 - `001-sales-schema.sql` - Esquema completo de ventas con notificaciones en tiempo real
+- `002-sales-edit-schema.sql` - **NUEVO**: Extensiones para edición de ventas por administradores
 
 ## Características Principales
 
@@ -177,6 +178,149 @@ const {
   createSale,      // Función para crear venta
   filterSales      // Función para filtrar
 } = useSales();
+```
+
+## ✨ NUEVAS FUNCIONALIDADES DE EDICIÓN ✨
+
+### Funciones de Edición (002-sales-edit-schema.sql)
+
+#### `fn_update_sale()`
+Actualiza información básica de una venta existente.
+
+**Parámetros:**
+- `p_sale_id`: ID de la venta a actualizar
+- `p_employee_name`: Nuevo nombre del empleado (opcional)
+- `p_payment_method`: Nuevo método de pago (opcional)
+- `p_payment_details`: Detalles de pago (opcional)
+- `p_discount_amount`: Nuevo monto de descuento (opcional)
+- `p_notes`: Notas adicionales (opcional)
+- `p_status`: Nuevo estado (opcional)
+- `p_refund_reason`: Razón de reembolso (opcional)
+
+#### `fn_add_sale_item()`
+Agrega un nuevo item a una venta existente.
+
+#### `fn_update_sale_item()`
+Actualiza cantidad y/o precio de un item existente.
+
+#### `fn_remove_sale_item()`
+Elimina un item de una venta (no puede ser el último).
+
+#### `fn_cancel_refund_sale()`
+Cancela o reembolsa una venta completa restaurando stock.
+
+### Nuevos Permisos de Edición
+
+#### Administradores
+- ✅ **NUEVO**: Editar cualquier venta de su club
+- ✅ **NUEVO**: Cancelar/reembolsar ventas
+- ✅ **NUEVO**: Agregar/eliminar/modificar items
+- ✅ **NUEVO**: Cambiar estados de venta
+
+#### Empleados (Bartenders/Cajeros)
+- ⚠️ **NUEVO**: Editar sus propias ventas (solo 'pending'/'completed')
+- ❌ No pueden cancelar/reembolsar
+- ✅ **NUEVO**: Modificar items de sus propias ventas
+
+### Nuevos Estados de Venta
+- `pending` - Venta pendiente, totalmente editable
+- `completed` - Venta completada, editable por admins
+- `cancelled` - **NUEVO**: Venta cancelada, no editable
+- `refunded` - **NUEVO**: Venta reembolsada, no editable
+
+### Componentes Frontend Nuevos
+
+#### EditSaleModal
+Modal completo para edición con:
+- ✅ **NUEVO**: Edición de información básica
+- ✅ **NUEVO**: Modificación de items en tiempo real
+- ✅ **NUEVO**: Agregado de productos desde inventario
+- ✅ **NUEVO**: Eliminación de items con validación
+- ✅ **NUEVO**: Cálculo automático de totales
+- ✅ **NUEVO**: Cancelación/reembolso con motivos
+
+#### SalesList (Actualizada)
+- ✅ **NUEVO**: Columna de estado visible
+- ✅ **NUEVO**: Botón de edición para administradores
+- ✅ **NUEVO**: Menú contextual de acciones
+
+#### useSales Hook (Extendido)
+- ✅ **NUEVO**: `updateSale()` - Actualizar venta
+- ✅ **NUEVO**: `addSaleItem()` - Agregar item
+- ✅ **NUEVO**: `updateSaleItem()` - Modificar item
+- ✅ **NUEVO**: `removeSaleItem()` - Eliminar item
+- ✅ **NUEVO**: `cancelRefundSale()` - Cancelar/reembolsar
+
+### Control Automático de Stock
+- ✅ **NUEVO**: Ajustes automáticos en modificaciones
+- ✅ **NUEVO**: Restauración completa en cancelaciones
+- ✅ **NUEVO**: Compensación en eliminación de items
+- ✅ **NUEVO**: Validación de stock en nuevos items
+
+## Instalación de Nuevas Funcionalidades
+
+1. **Aplicar extensión de edición:**
+   ```sql
+   -- Ejecutar en Supabase SQL Editor
+   \i 002-sales-edit-schema.sql
+   ```
+
+2. **Verificar nuevas políticas:**
+   ```sql
+   SELECT schemaname, tablename, policyname, cmd
+   FROM pg_policies
+   WHERE tablename IN ('sales', 'sale_items')
+   ORDER BY tablename, cmd;
+   ```
+
+3. **Probar funciones de edición:**
+   ```sql
+   -- Actualizar venta
+   SELECT fn_update_sale(
+     'your-sale-id',
+     'Empleado Actualizado',
+     'credit'::payment_method,
+     NULL,
+     25.00,
+     'Venta modificada por admin'
+   );
+   ```
+
+## Ejemplos de Uso de Edición
+
+### Modificar Información de Venta
+```typescript
+const { updateSale } = useSales();
+
+await updateSale({
+  saleId: 'sale-uuid',
+  employeeName: 'Juan Carlos',
+  paymentMethod: 'transfer',
+  discountAmount: 50.00,
+  notes: 'Cliente VIP - descuento especial'
+});
+```
+
+### Agregar Producto a Venta
+```typescript
+const { addSaleItem } = useSales();
+
+await addSaleItem('sale-uuid', {
+  product_id: 'product-uuid',
+  quantity: 2,
+  unit_price: 35.00
+});
+```
+
+### Cancelar Venta
+```typescript
+const { cancelRefundSale } = useSales();
+
+await cancelRefundSale(
+  'sale-uuid',
+  'cancelled',
+  'Error en el pedido - cliente no satisfecho'
+);
 ```
 
 ## Reportes y Análisis

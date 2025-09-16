@@ -60,6 +60,24 @@ export interface CreateSaleData {
   notes?: string;
 }
 
+export interface UpdateSaleData {
+  employeeName?: string;
+  paymentMethod?: PaymentMethod;
+  paymentDetails?: any;
+  discountAmount?: number;
+  notes?: string;
+  status?: SaleStatus;
+  refundReason?: string;
+}
+
+export interface EditSaleItem extends CreateSaleItem {
+  id: string;
+  product_name: string;
+  product_sku?: string;
+  line_total: number;
+  created_at: string;
+}
+
 export interface SalesStats {
   total_sales: number;
   total_amount: number;

@@ -3,7 +3,10 @@ import { supabase } from '@/core/config/supabase';
 import type {
   SaleWithDetails,
   CreateSaleData,
-  SalesStats
+  SalesStats,
+  PaymentMethod,
+  SaleStatus,
+  CreateSaleItem
 } from '../types/sales';
 
 export const useSales = () => {
@@ -172,8 +175,46 @@ export const useSales = () => {
         },
         (payload) => {
           console.log('Nueva venta recibida:', payload);
-          // Refrescar ventas del día
           fetchTodaySales();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sales'
+        },
+        (payload) => {
+          console.log('Venta actualizada:', payload);
+          fetchTodaySales();
+          fetchSales();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'sales'
+        },
+        (payload) => {
+          console.log('Venta eliminada:', payload);
+          fetchTodaySales();
+          fetchSales();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sale_items'
+        },
+        (payload) => {
+          console.log('Item de venta modificado:', payload);
+          fetchTodaySales();
+          fetchSales();
         }
       )
       .subscribe();
@@ -181,7 +222,7 @@ export const useSales = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchTodaySales]);
+  }, [fetchTodaySales, fetchSales]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -217,6 +258,161 @@ export const useSales = () => {
     getSalesByEmployee,
 
     // Limpiar error
-    clearError: () => setError(null)
+    clearError: () => setError(null),
+
+    // Nuevas funciones para edición
+    updateSale,
+    addSaleItem,
+    updateSaleItem,
+    removeSaleItem,
+    cancelRefundSale
   };
+
+  // Actualizar venta
+  async function updateSale(params: {
+    saleId: string;
+    employeeName?: string;
+    paymentMethod?: PaymentMethod;
+    paymentDetails?: any;
+    discountAmount?: number;
+    notes?: string;
+    status?: SaleStatus;
+    refundReason?: string;
+  }) {
+    try {
+      setError(null);
+
+      const { data, error: updateError } = await supabase.rpc('fn_update_sale', {
+        p_sale_id: params.saleId,
+        p_employee_name: params.employeeName || null,
+        p_payment_method: params.paymentMethod || null,
+        p_payment_details: params.paymentDetails || null,
+        p_discount_amount: params.discountAmount !== undefined ? params.discountAmount : null,
+        p_notes: params.notes || null,
+        p_status: params.status || null,
+        p_refund_reason: params.refundReason || null
+      });
+
+      if (updateError) throw updateError;
+
+      // Refrescar datos
+      await Promise.all([
+        fetchTodaySales(),
+        fetchSales(),
+        fetchStats()
+      ]);
+
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al actualizar venta');
+      throw err;
+    }
+  }
+
+  // Agregar item a venta
+  async function addSaleItem(saleId: string, item: CreateSaleItem & { unit_price: number }) {
+    try {
+      setError(null);
+
+      const { data, error: addError } = await supabase.rpc('fn_add_sale_item', {
+        p_sale_id: saleId,
+        p_product_id: item.product_id,
+        p_quantity: item.quantity,
+        p_unit_price: item.unit_price
+      });
+
+      if (addError) throw addError;
+
+      // Refrescar datos
+      await Promise.all([
+        fetchTodaySales(),
+        fetchSales(),
+        fetchStats()
+      ]);
+
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al agregar item');
+      throw err;
+    }
+  }
+
+  // Actualizar item de venta
+  async function updateSaleItem(itemId: string, quantity?: number, unitPrice?: number) {
+    try {
+      setError(null);
+
+      const { data, error: updateError } = await supabase.rpc('fn_update_sale_item', {
+        p_item_id: itemId,
+        p_quantity: quantity || null,
+        p_unit_price: unitPrice || null
+      });
+
+      if (updateError) throw updateError;
+
+      // Refrescar datos
+      await Promise.all([
+        fetchTodaySales(),
+        fetchSales(),
+        fetchStats()
+      ]);
+
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al actualizar item');
+      throw err;
+    }
+  }
+
+  // Eliminar item de venta
+  async function removeSaleItem(itemId: string) {
+    try {
+      setError(null);
+
+      const { data, error: removeError } = await supabase.rpc('fn_remove_sale_item', {
+        p_item_id: itemId
+      });
+
+      if (removeError) throw removeError;
+
+      // Refrescar datos
+      await Promise.all([
+        fetchTodaySales(),
+        fetchSales(),
+        fetchStats()
+      ]);
+
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar item');
+      throw err;
+    }
+  }
+
+  // Cancelar o reembolsar venta
+  async function cancelRefundSale(saleId: string, action: 'cancelled' | 'refunded', reason: string) {
+    try {
+      setError(null);
+
+      const { data, error: cancelError } = await supabase.rpc('fn_cancel_refund_sale', {
+        p_sale_id: saleId,
+        p_action: action,
+        p_reason: reason
+      });
+
+      if (cancelError) throw cancelError;
+
+      // Refrescar datos
+      await Promise.all([
+        fetchTodaySales(),
+        fetchSales(),
+        fetchStats()
+      ]);
+
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cancelar/reembolsar venta');
+      throw err;
+    }
+  }
 };
