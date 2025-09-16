@@ -194,20 +194,37 @@ DECLARE
   v_product_name text;
   v_product_sku text;
   v_line_total numeric;
+  v_is_admin boolean := false;
 BEGIN
-  -- Verificar que es empleado autorizado (bartender o cashier)
-  IF NOT fn_can_edit_stock() THEN
-    RAISE EXCEPTION 'Solo bartenders y cajeros pueden crear ventas';
-  END IF;
+  -- Verificar si es admin o empleado autorizado
+  -- Primero verificar si es admin
+  SELECT fn_current_admin_club_id() IS NOT NULL INTO v_is_admin;
 
-  -- Obtener información del empleado
-  SELECT e.club_id, e.full_name
-  INTO v_club_id, v_employee_name
-  FROM public.employees e
-  WHERE e.user_id = auth.uid() AND e.status = 'active';
+  IF v_is_admin THEN
+    -- Es admin, obtener información del admin
+    SELECT a.club_id, a.full_name
+    INTO v_club_id, v_employee_name
+    FROM public.admins a
+    WHERE a.user_id = auth.uid() AND a.status = 'active';
 
-  IF v_club_id IS NULL THEN
-    RAISE EXCEPTION 'Empleado no encontrado o inactivo';
+    IF v_club_id IS NULL THEN
+      RAISE EXCEPTION 'Administrador no encontrado o inactivo';
+    END IF;
+  ELSE
+    -- No es admin, verificar si es empleado autorizado
+    IF NOT fn_can_edit_stock() THEN
+      RAISE EXCEPTION 'Solo administradores, bartenders y cajeros pueden crear ventas';
+    END IF;
+
+    -- Obtener información del empleado
+    SELECT e.club_id, e.full_name
+    INTO v_club_id, v_employee_name
+    FROM public.employees e
+    WHERE e.user_id = auth.uid() AND e.status = 'active';
+
+    IF v_club_id IS NULL THEN
+      RAISE EXCEPTION 'Empleado no encontrado o inactivo';
+    END IF;
   END IF;
 
   -- Generar número de venta

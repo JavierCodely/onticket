@@ -51,17 +51,24 @@ export const useSales = () => {
   }, []);
 
   // Crear nueva venta
-  const createSale = useCallback(async (saleData: CreateSaleData) => {
+  const createSale = useCallback(async (saleData: any) => {
     try {
       setError(null);
 
+      // Transformar items al formato esperado por la función SQL
+      const transformedItems = saleData.items.map((item: any) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.price // Cambiar 'price' a 'unit_price'
+      }));
+
       const { data, error: createError } = await supabase
         .rpc('fn_create_sale', {
-          p_items: saleData.items,
+          p_items: transformedItems,
           p_payment_method: saleData.payment_method,
-          p_payment_details: saleData.payment_details,
+          p_payment_details: saleData.payment_details || null,
           p_discount_amount: saleData.discount_amount || 0,
-          p_notes: saleData.notes
+          p_notes: saleData.notes || null
         });
 
       if (createError) throw createError;
@@ -119,9 +126,15 @@ export const useSales = () => {
     });
   }, [sales]);
 
-  // Obtener ventas por empleado
+  // Obtener empleados únicos que han realizado ventas hoy
   const getSalesByEmployee = useCallback(() => {
-    const employeeSales = sales.reduce((acc, sale) => {
+    // Usar ventas de hoy en lugar de todas las ventas
+    const today = new Date().toISOString().split('T')[0];
+    const todaysSalesOnly = todaySales.filter(sale =>
+      sale.sale_date.startsWith(today)
+    );
+
+    const employeeSales = todaysSalesOnly.reduce((acc, sale) => {
       const key = sale.employee_name;
       if (!acc[key]) {
         acc[key] = {
@@ -143,7 +156,7 @@ export const useSales = () => {
     }>);
 
     return Object.values(employeeSales);
-  }, [sales]);
+  }, [todaySales]);
 
   // Configurar suscripción en tiempo real
   const setupRealtimeSubscription = useCallback(() => {
