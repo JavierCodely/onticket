@@ -90,6 +90,21 @@ export const useProducts = () => {
   const updateStock = useCallback(async (productId: string, updates: UpdateStockData) => {
     try {
       setError(null);
+      console.log('[DEBUG] Actualizando stock para producto:', productId, 'con datos:', updates);
+
+      // Primero obtener el club_id del producto
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .select('club_id')
+        .eq('id', productId)
+        .single();
+
+      if (productError || !productData) {
+        console.error('[DEBUG] Error obteniendo producto:', productError);
+        throw new Error('Producto no encontrado');
+      }
+
+      console.log('[DEBUG] Producto encontrado, club_id:', productData.club_id);
 
       const stockUpdate: any = { ...updates };
 
@@ -101,16 +116,44 @@ export const useProducts = () => {
         }
       }
 
-      const { error: updateError } = await supabase
+      console.log('[DEBUG] Datos de stock a actualizar:', stockUpdate);
+
+      // Primero intentar actualizar el registro existente
+      const { data: updateResult, error: updateError } = await supabase
         .from('product_stock')
         .update(stockUpdate)
-        .eq('product_id', productId);
+        .eq('product_id', productId)
+        .select('id');
+
+      console.log('[DEBUG] Resultado de UPDATE:', { updateResult, updateError });
 
       if (updateError) throw updateError;
+
+      // Si no se actualizó ningún registro, crear uno nuevo
+      if (!updateResult || updateResult.length === 0) {
+        console.log('[DEBUG] No se encontró registro existente, creando nuevo...');
+        const insertData = {
+          product_id: productId,
+          club_id: productData.club_id,
+          ...stockUpdate
+        };
+        console.log('[DEBUG] Datos para INSERT:', insertData);
+
+        const { error: insertError } = await supabase
+          .from('product_stock')
+          .insert(insertData);
+
+        console.log('[DEBUG] Resultado de INSERT:', insertError);
+
+        if (insertError) throw insertError;
+      }
+
+      console.log('[DEBUG] Stock actualizado exitosamente, refrescando productos...');
 
       // Refrescar lista de productos
       await fetchProducts();
     } catch (err) {
+      console.error('[DEBUG] Error en updateStock:', err);
       setError(err instanceof Error ? err.message : 'Error al actualizar stock');
       throw err;
     }

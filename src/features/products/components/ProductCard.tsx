@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, Package, TrendingUp, AlertTriangle, Plus, Minus } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -39,6 +39,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [restockQuantity, setRestockQuantity] = useState(0);
   const [updating, setUpdating] = useState(false);
 
+  // Sincronizar stockQuantity cuando se abre el modal
+  useEffect(() => {
+    if (showStockModal) {
+      setStockQuantity(product.current_stock);
+      setRestockQuantity(0);
+    }
+  }, [showStockModal, product.current_stock]);
+
+  // Actualizar stockQuantity automáticamente cuando cambia restockQuantity
+  useEffect(() => {
+    if (restockQuantity > 0) {
+      setStockQuantity(product.current_stock + restockQuantity);
+    } else if (restockQuantity === 0) {
+      // Si no hay restock, volver al stock original
+      setStockQuantity(product.current_stock);
+    }
+  }, [restockQuantity, product.current_stock]);
+
   const categoryConfig = PRODUCT_CATEGORY_CONFIG[product.category];
   const statusConfig = PRODUCT_STATUS_CONFIG[product.status];
   const unitConfig = PRODUCT_UNIT_CONFIG[product.unit];
@@ -54,16 +72,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const handleUpdateStock = async () => {
+    console.log('[DEBUG ProductCard] Iniciando actualización de stock...');
+    console.log('[DEBUG ProductCard] Producto ID:', product.id);
+    console.log('[DEBUG ProductCard] Stock actual del producto:', product.current_stock);
+    console.log('[DEBUG ProductCard] Nueva cantidad:', stockQuantity);
+    console.log('[DEBUG ProductCard] Cantidad de restock:', restockQuantity);
+
     try {
       setUpdating(true);
-      await onUpdateStock(product.id, {
+      const updateData = {
         current_stock: stockQuantity,
         last_restock_quantity: restockQuantity > 0 ? restockQuantity : undefined
-      });
+      };
+      console.log('[DEBUG ProductCard] Datos a enviar:', updateData);
+
+      await onUpdateStock(product.id, updateData);
+
+      console.log('[DEBUG ProductCard] Stock actualizado exitosamente');
       setShowStockModal(false);
       setRestockQuantity(0);
     } catch (error) {
-      console.error('Error updating stock:', error);
+      console.error('[DEBUG ProductCard] Error updating stock:', error);
     } finally {
       setUpdating(false);
     }
