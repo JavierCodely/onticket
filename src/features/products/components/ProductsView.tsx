@@ -58,7 +58,7 @@ export const ProductsView: React.FC = () => {
 
   const handleSaveProduct = async (data: any) => {
     if (selectedProduct) {
-      await updateProduct(selectedProduct.id, data);
+      await updateProduct(selectedProduct.id , data);
     } else {
       await createProduct(data);
     }
@@ -176,7 +176,7 @@ export const ProductsView: React.FC = () => {
               />
             </div>
 
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as ProductCategory)}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Todas las categorías" />
               </SelectTrigger>
@@ -190,7 +190,7 @@ export const ProductsView: React.FC = () => {
               </SelectContent>
             </Select>
 
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as ProductStatus)}>
               <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>

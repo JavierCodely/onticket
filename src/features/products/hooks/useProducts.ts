@@ -169,12 +169,25 @@ export const useProducts = () => {
         .delete()
         .eq('id', productId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('[DEBUG] Error eliminando producto:', deleteError);
+
+        // Manejar errores específicos
+        if (deleteError.code === '23503') {
+          // Foreign key constraint violation
+          throw new Error('No se puede eliminar este producto porque ha sido utilizado en ventas anteriores');
+        } else if (deleteError.message?.includes('foreign key')) {
+          throw new Error('No se puede eliminar este producto porque está siendo referenciado por otros registros');
+        } else {
+          throw deleteError;
+        }
+      }
 
       // Refrescar lista de productos
       await fetchProducts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar producto');
+      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar producto';
+      setError(errorMessage);
       throw err;
     }
   }, [fetchProducts]);
