@@ -86,7 +86,7 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
   onClose,
   sale
 }) => {
-  const { updateSale, addSaleItem, updateSaleItem, removeSaleItem, cancelRefundSale, error } = useSales();
+  const { updateSale, addSaleItem, updateSaleItem, removeSaleItem, cancelRefundSale, error, fetchSales, fetchTodaySales } = useSales();
   const { products } = useProducts();
   const [editableItems, setEditableItems] = useState<EditableItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -228,7 +228,10 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      console.log('Starting sale update process...');
+
       // 1. Actualizar datos básicos de la venta
+      console.log('Updating basic sale data...');
       await updateSale({
         saleId: sale.id,
         employeeName: data.employee_name,
@@ -240,23 +243,31 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
       });
 
       // 2. Procesar cambios en items
+      console.log('Processing item changes...');
       for (const [index, item] of editableItems.entries()) {
         if (item.toDelete && !item.isNew) {
-          // Eliminar item existente
+          console.log('Removing item:', item.id);
           await removeSaleItem(item.id);
         } else if (item.isNew && item.product_id) {
-          // Agregar nuevo item
+          console.log('Adding new item:', item.product_id);
           await addSaleItem(sale.id, {
             product_id: item.product_id,
             quantity: item.quantity,
             unit_price: item.unit_price
           });
         } else if (item.isModified && !item.isNew) {
-          // Actualizar item existente
+          console.log('Updating item:', item.id);
           await updateSaleItem(item.id, item.quantity, item.unit_price);
         }
       }
 
+      console.log('Sale update completed successfully');
+
+      // Forzar actualización adicional para asegurar que los cambios se reflejen
+      await new Promise(resolve => setTimeout(resolve, 200));
+      await Promise.all([fetchSales(), fetchTodaySales()]);
+
+      console.log('Final data refresh completed');
       onClose();
     } catch (error) {
       console.error('Error updating sale:', error);
@@ -269,7 +280,12 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
     if (!sale) return;
 
     try {
+      console.log('Cancelling/refunding sale:', sale.id);
       await cancelRefundSale(sale.id, cancelAction, cancelReason);
+
+      // Forzar un pequeño delay para asegurar que las actualizaciones se procesen
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       setShowCancelDialog(false);
       onClose();
     } catch (error) {

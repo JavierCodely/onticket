@@ -167,8 +167,14 @@ export const useSales = () => {
 
   // Configurar suscripción en tiempo real
   const setupRealtimeSubscription = useCallback(() => {
+    console.log('Setting up real-time subscriptions...');
+
     const channel = supabase
-      .channel('sales_realtime')
+      .channel('sales_realtime', {
+        config: {
+          broadcast: { self: false }
+        }
+      })
       .on(
         'postgres_changes',
         {
@@ -178,7 +184,10 @@ export const useSales = () => {
         },
         (payload) => {
           console.log('Nueva venta recibida:', payload);
-          fetchTodaySales();
+          setTimeout(() => {
+            fetchTodaySales();
+            fetchSales();
+          }, 100);
         }
       )
       .on(
@@ -190,8 +199,11 @@ export const useSales = () => {
         },
         (payload) => {
           console.log('Venta actualizada:', payload);
-          fetchTodaySales();
-          fetchSales();
+          // Refrescar inmediatamente
+          setTimeout(() => {
+            fetchTodaySales();
+            fetchSales();
+          }, 100);
         }
       )
       .on(
@@ -203,8 +215,10 @@ export const useSales = () => {
         },
         (payload) => {
           console.log('Venta eliminada:', payload);
-          fetchTodaySales();
-          fetchSales();
+          setTimeout(() => {
+            fetchTodaySales();
+            fetchSales();
+          }, 100);
         }
       )
       .on(
@@ -216,14 +230,37 @@ export const useSales = () => {
         },
         (payload) => {
           console.log('Item de venta modificado:', payload);
-          fetchTodaySales();
-          fetchSales();
+          // Refrescar inmediatamente cuando cambian los items
+          setTimeout(() => {
+            fetchTodaySales();
+            fetchSales();
+          }, 100);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log('Subscription status:', status);
+        if (err) {
+          console.error('Subscription error:', err);
+        }
+
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to real-time updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Channel error, attempting to reconnect...');
+          // Intentar reconectar después de un delay
+          setTimeout(() => {
+            setupRealtimeSubscription();
+          }, 5000);
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      console.log('Removing real-time subscription...');
+      try {
+        supabase.removeChannel(channel);
+      } catch (error) {
+        console.error('Error removing channel:', error);
+      }
     };
   }, [fetchTodaySales, fetchSales]);
 
@@ -255,6 +292,7 @@ export const useSales = () => {
   }) => {
     try {
       setError(null);
+      console.log('updateSale: Starting update for sale:', params.saleId);
 
       const { data, error: updateError } = await supabase.rpc('fn_update_sale', {
         p_sale_id: params.saleId,
@@ -269,15 +307,19 @@ export const useSales = () => {
 
       if (updateError) throw updateError;
 
-      // Refrescar datos
+      console.log('updateSale: Database update completed, refreshing data...');
+
+      // Forzar refrescar datos inmediatamente
       await Promise.all([
         fetchTodaySales(),
         fetchSales(),
         fetchStats()
       ]);
 
+      console.log('updateSale: Data refresh completed');
       return data;
     } catch (err) {
+      console.error('updateSale: Error updating sale:', err);
       setError(err instanceof Error ? err.message : 'Error al actualizar venta');
       throw err;
     }
@@ -287,6 +329,7 @@ export const useSales = () => {
   const addSaleItem = useCallback(async (saleId: string, item: CreateSaleItem & { unit_price: number }) => {
     try {
       setError(null);
+      console.log('addSaleItem: Adding item to sale:', saleId, item);
 
       const { data, error: addError } = await supabase.rpc('fn_add_sale_item', {
         p_sale_id: saleId,
@@ -297,15 +340,19 @@ export const useSales = () => {
 
       if (addError) throw addError;
 
-      // Refrescar datos
+      console.log('addSaleItem: Item added, refreshing data...');
+
+      // Forzar refrescar datos inmediatamente
       await Promise.all([
         fetchTodaySales(),
         fetchSales(),
         fetchStats()
       ]);
 
+      console.log('addSaleItem: Data refresh completed');
       return data;
     } catch (err) {
+      console.error('addSaleItem: Error adding item:', err);
       setError(err instanceof Error ? err.message : 'Error al agregar item');
       throw err;
     }
@@ -315,6 +362,7 @@ export const useSales = () => {
   const updateSaleItem = useCallback(async (itemId: string, quantity?: number, unitPrice?: number) => {
     try {
       setError(null);
+      console.log('updateSaleItem: Updating item:', itemId, { quantity, unitPrice });
 
       const { data, error: updateError } = await supabase.rpc('fn_update_sale_item', {
         p_item_id: itemId,
@@ -324,15 +372,19 @@ export const useSales = () => {
 
       if (updateError) throw updateError;
 
-      // Refrescar datos
+      console.log('updateSaleItem: Item updated, refreshing data...');
+
+      // Forzar refrescar datos inmediatamente
       await Promise.all([
         fetchTodaySales(),
         fetchSales(),
         fetchStats()
       ]);
 
+      console.log('updateSaleItem: Data refresh completed');
       return data;
     } catch (err) {
+      console.error('updateSaleItem: Error updating item:', err);
       setError(err instanceof Error ? err.message : 'Error al actualizar item');
       throw err;
     }
