@@ -31,6 +31,7 @@ import { Switch } from '@/shared/components/ui/switch';
 import { useEmployeesSimple } from '../hooks/useEmployeesSimple';
 import { EMPLOYEE_CATEGORIES, EMPLOYEE_STATUS_LABELS } from '@/core/constants/constants';
 import type { Employee, UpdateEmployeeData, EmployeeCategory } from '@/core/types/database';
+import { parseOptionalNumberInput } from '@/shared/utils/numberUtils';
 import { Loader2, User, Phone, DollarSign, Calendar, Hash, FileText, ToggleLeft } from 'lucide-react';
 
 const updateEmployeeSchema = z.object({
@@ -289,8 +290,11 @@ export const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
                           step="0.01"
                           min="0"
                           placeholder="0.00"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            field.onChange(value === '' ? undefined : parseOptionalNumberInput(value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />

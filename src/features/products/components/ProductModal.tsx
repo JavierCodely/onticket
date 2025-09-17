@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select';
 import { Switch } from '@/shared/components/ui/switch';
+import { parseNumberInput, parseOptionalNumberInput } from '@/shared/utils/numberUtils';
 import {
   PRODUCT_CATEGORY_CONFIG,
   PRODUCT_UNIT_CONFIG,
@@ -307,8 +308,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 type="number"
                 step="0.01"
                 min="0"
-                value={formData.cost_price}
-                onChange={(e) => setFormData(prev => ({ ...prev, cost_price: parseFloat(e.target.value) || 0 }))}
+                placeholder="0.00"
+                value={formData.cost_price || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, cost_price: value === '' ? 0 : parseNumberInput(value) }));
+                }}
                 className={errors.cost_price ? 'border-red-500' : ''}
               />
               {errors.cost_price && <p className="text-sm text-red-500">{errors.cost_price}</p>}
@@ -321,8 +326,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 type="number"
                 step="0.01"
                 min="0"
-                value={formData.sale_price}
-                onChange={(e) => setFormData(prev => ({ ...prev, sale_price: parseFloat(e.target.value) || 0 }))}
+                placeholder="0.00"
+                value={formData.sale_price || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, sale_price: value === '' ? 0 : parseNumberInput(value) }));
+                }}
                 className={errors.sale_price ? 'border-red-500' : ''}
               />
               {errors.sale_price && <p className="text-sm text-red-500">{errors.sale_price}</p>}
@@ -349,8 +358,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 id="min_stock"
                 type="number"
                 min="0"
-                value={formData.min_stock}
-                onChange={(e) => setFormData(prev => ({ ...prev, min_stock: parseInt(e.target.value) || 0 }))}
+                placeholder="0"
+                value={formData.min_stock || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, min_stock: value === '' ? 0 : parseNumberInput(value) || 0 }));
+                }}
                 className={errors.min_stock ? 'border-red-500' : ''}
               />
               {errors.min_stock && <p className="text-sm text-red-500">{errors.min_stock}</p>}
@@ -363,7 +376,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 type="number"
                 min="0"
                 value={formData.max_stock || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, max_stock: parseInt(e.target.value) || undefined }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, max_stock: value === '' ? undefined : parseOptionalNumberInput(value) }));
+                }}
                 placeholder="Opcional"
                 className={errors.max_stock ? 'border-red-500' : ''}
               />
@@ -377,8 +393,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   id="initial_stock"
                   type="number"
                   min="0"
-                  value={formData.initial_stock}
-                  onChange={(e) => setFormData(prev => ({ ...prev, initial_stock: parseInt(e.target.value) || 0 }))}
+                  placeholder="0"
+                  value={formData.initial_stock || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, initial_stock: value === '' ? 0 : parseNumberInput(value) || 0 }));
+                  }}
                   className={errors.initial_stock ? 'border-red-500' : ''}
                 />
                 {errors.initial_stock && <p className="text-sm text-red-500">{errors.initial_stock}</p>}

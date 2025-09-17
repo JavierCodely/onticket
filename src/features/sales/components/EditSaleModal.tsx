@@ -21,6 +21,7 @@ import {
 } from '@/shared/components/ui/select';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { useProducts } from '@/features/products/hooks/useProducts';
+import { parseNumberInput } from '@/shared/utils/numberUtils';
 import type { SaleWithDetails, UpdateSaleData, PaymentMethod, SaleStatus, SaleItem } from '../types';
 import { PAYMENT_METHOD_CONFIG, SALE_STATUS_CONFIG } from '../types';
 
@@ -90,7 +91,7 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
       });
       setEditingItems(editingState);
     }
-  }, [sale]);
+  }, [sale?.id, sale?.items, sale?.employee_name, sale?.payment_method, sale?.discount_amount, sale?.status]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -121,12 +122,31 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
 
   const handleUpdateItem = async (itemId: string) => {
     const editData = editingItems[itemId];
-    if (!editData) return;
+    if (!editData) {
+      alert('No hay datos para actualizar');
+      return;
+    }
+
+    if (editData.quantity <= 0) {
+      alert('La cantidad debe ser mayor a 0');
+      return;
+    }
+
+    if (editData.unit_price < 0) {
+      alert('El precio no puede ser negativo');
+      return;
+    }
 
     try {
+      console.log('Updating item:', itemId, 'with:', editData);
       await onUpdateItem(itemId, editData.quantity, editData.unit_price);
+      console.log('Item updated successfully');
+
+      // Show success message
+      alert('Item actualizado correctamente');
     } catch (error) {
       console.error('Error updating item:', error);
+      alert('Error al actualizar el item: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
   };
 
@@ -136,10 +156,26 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
       return;
     }
 
+    if (!confirm('¿Estás seguro de que quieres eliminar este item?')) {
+      return;
+    }
+
     try {
+      console.log('Removing item:', itemId);
       await onRemoveItem(itemId);
+      console.log('Item removed successfully');
+
+      // Remove the item from editing state
+      setEditingItems(prev => {
+        const newState = { ...prev };
+        delete newState[itemId];
+        return newState;
+      });
+
+      alert('Item eliminado correctamente');
     } catch (error) {
       console.error('Error removing item:', error);
+      alert('Error al eliminar el item: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
   };
 
@@ -312,11 +348,15 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
                 min="0"
                 max={calculatedSubtotal}
                 step="0.01"
-                value={formData.discount_amount}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  discount_amount: parseFloat(e.target.value) || 0
-                }))}
+                placeholder="0.00"
+                value={formData.discount_amount || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({
+                    ...prev,
+                    discount_amount: value === '' ? 0 : parseNumberInput(value)
+                  }));
+                }}
               />
             </div>
 
@@ -436,8 +476,12 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
                               <Input
                                 type="number"
                                 min="1"
-                                value={editData.quantity}
-                                onChange={(e) => updateEditingItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                                placeholder="1"
+                                value={editData.quantity || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  updateEditingItem(item.id, 'quantity', value === '' ? 1 : parseNumberInput(value) || 1);
+                                }}
                                 className="text-center"
                               />
                             </div>
@@ -447,8 +491,13 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
                               <Input
                                 type="number"
                                 step="0.01"
-                                value={editData.unit_price}
-                                onChange={(e) => updateEditingItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                                min="0"
+                                placeholder="0.00"
+                                value={editData.unit_price || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  updateEditingItem(item.id, 'unit_price', value === '' ? 0 : parseNumberInput(value));
+                                }}
                                 className="text-right"
                               />
                             </div>

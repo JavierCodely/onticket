@@ -171,6 +171,12 @@ export class SalesService {
 
   async updateSaleItem(itemId: string, quantity?: number, unitPrice?: number): Promise<boolean> {
     try {
+      console.log('Calling fn_update_sale_item with:', {
+        p_item_id: itemId,
+        p_quantity: quantity || null,
+        p_unit_price: unitPrice || null
+      });
+
       const { data, error } = await supabase
         .rpc('fn_update_sale_item', {
           p_item_id: itemId,
@@ -183,6 +189,7 @@ export class SalesService {
         throw new Error(`Error al actualizar item: ${error.message}`);
       }
 
+      console.log('fn_update_sale_item response:', data);
       return data === true;
     } catch (error) {
       console.error('Error in updateSaleItem:', error);
@@ -192,6 +199,10 @@ export class SalesService {
 
   async removeSaleItem(itemId: string): Promise<boolean> {
     try {
+      console.log('Calling fn_remove_sale_item with:', {
+        p_item_id: itemId
+      });
+
       const { data, error } = await supabase
         .rpc('fn_remove_sale_item', {
           p_item_id: itemId
@@ -202,6 +213,7 @@ export class SalesService {
         throw new Error(`Error al eliminar item: ${error.message}`);
       }
 
+      console.log('fn_remove_sale_item response:', data);
       return data === true;
     } catch (error) {
       console.error('Error in removeSaleItem:', error);

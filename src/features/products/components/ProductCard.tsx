@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/shared/components/ui/dialog';
+import { parseNumberInput } from '@/shared/utils/numberUtils';
 import {
   PRODUCT_CATEGORY_CONFIG,
   PRODUCT_STATUS_CONFIG,
@@ -210,8 +211,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </Button>
                 <Input
                   type="number"
-                  value={stockQuantity}
-                  onChange={(e) => setStockQuantity(parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  value={stockQuantity || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setStockQuantity(value === '' ? 0 : parseNumberInput(value) || 0);
+                  }}
                   className="text-center"
                   min="0"
                 />
@@ -230,8 +235,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <Label>Cantidad de Reposición (opcional)</Label>
               <Input
                 type="number"
-                value={restockQuantity}
-                onChange={(e) => setRestockQuantity(parseInt(e.target.value) || 0)}
+                value={restockQuantity || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRestockQuantity(value === '' ? 0 : parseNumberInput(value) || 0);
+                }}
                 placeholder="Cantidad agregada al inventario"
                 min="0"
               />

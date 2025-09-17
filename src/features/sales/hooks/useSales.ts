@@ -98,10 +98,8 @@ export const useSales = () => {
   const updateSaleItem = useCallback(async (itemId: string, quantity?: number, unitPrice?: number): Promise<void> => {
     try {
       setError(null);
-      const success = await salesService.updateSaleItem(itemId, quantity, unitPrice);
-      if (success) {
-        await loadTodaySales(); // Reload to show the updated sale
-      }
+      await salesService.updateSaleItem(itemId, quantity, unitPrice);
+      await loadTodaySales(); // Reload to show the updated sale
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar item';
       setError(errorMessage);
@@ -112,10 +110,8 @@ export const useSales = () => {
   const removeSaleItem = useCallback(async (itemId: string): Promise<void> => {
     try {
       setError(null);
-      const success = await salesService.removeSaleItem(itemId);
-      if (success) {
-        await loadTodaySales(); // Reload to show the updated sale
-      }
+      await salesService.removeSaleItem(itemId);
+      await loadTodaySales(); // Reload to show the updated sale
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar item';
       setError(errorMessage);

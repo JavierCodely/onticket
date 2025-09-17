@@ -21,6 +21,7 @@ import {
 } from '@/shared/components/ui/select';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { useProducts } from '@/features/products/hooks/useProducts';
+import { parseNumberInput } from '@/shared/utils/numberUtils';
 import type { CreateSaleData, CreateSaleItem, PaymentMethod } from '../types';
 import { PAYMENT_METHOD_CONFIG } from '../types';
 
@@ -187,7 +188,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-8xl w-[500vw] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nueva Venta</DialogTitle>
           <DialogDescription>
@@ -195,13 +196,13 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-2">
           {/* Información de la venta */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="space-y-2">
               <Label>Empleado que realiza la venta</Label>
               <Select value={formData.employee_user_id} onValueChange={handleEmployeeChange}>
-                <SelectTrigger>
+                <SelectTrigger className="h-12">
                   <SelectValue placeholder="Seleccionar empleado" />
                 </SelectTrigger>
                 <SelectContent>
@@ -225,6 +226,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                   employee_name: e.target.value,
                   employee_user_id: ''
                 }))}
+                className="h-12"
               />
             </div>
 
@@ -233,7 +235,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
               <Select value={formData.payment_method} onValueChange={(value: PaymentMethod) =>
                 setFormData(prev => ({ ...prev, payment_method: value }))
               }>
-                <SelectTrigger>
+                <SelectTrigger className="h-12">
                   <SelectValue placeholder="Seleccionar método de pago" />
                 </SelectTrigger>
                 <SelectContent>
@@ -253,11 +255,16 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                 min="0"
                 max={subtotal}
                 step="0.01"
-                value={formData.discount_amount}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  discount_amount: parseFloat(e.target.value) || 0
-                }))}
+                placeholder="0.00"
+                value={formData.discount_amount || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({
+                    ...prev,
+                    discount_amount: value === '' ? 0 : parseNumberInput(value)
+                  }));
+                }}
+                className="h-12"
               />
             </div>
 
@@ -293,7 +300,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           </div>
 
           {/* Productos */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="space-y-2">
               <Label>Buscar productos</Label>
               <div className="relative">
@@ -302,7 +309,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                   placeholder="Buscar productos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-12"
                 />
               </div>
             </div>
@@ -323,8 +330,8 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                           Stock: {product.available_stock} | ${product.sale_price}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline">
-                        <Plus className="h-4 w-4" />
+                      <Button size="default" variant="outline" className="h-10">
+                        <Plus className="h-5 w-5" />
                       </Button>
                     </div>
                   </div>
@@ -344,50 +351,85 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                   items.map((item) => (
                     <Card key={item.id}>
                       <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium">{item.product_name}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="w-8 text-center">{item.quantity}</span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
-                                disabled={item.quantity >= item.available_stock}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{item.product_name}</p>
+                              <p className="text-xs text-gray-500">
+                                Stock disponible: {item.available_stock}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeItem(item.id)}
+                              className="ml-2"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 items-center">
+                            <div>
+                              <Label className="text-xs">Cantidad</Label>
+                              <div className="flex items-center gap-1 mt-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
+                                  disabled={item.quantity <= 1}
+                                  className="h-10 w-10 p-0"
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max={item.available_stock}
+                                  placeholder="1"
+                                  value={item.quantity || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    const newQuantity = value === '' ? 1 : parseNumberInput(value) || 1;
+                                    updateItemQuantity(item.id, Math.min(newQuantity, item.available_stock));
+                                  }}
+                                  className="text-center h-10 w-20 text-lg"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                                  disabled={item.quantity >= item.available_stock}
+                                  className="h-10 w-10 p-0"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label className="text-xs">Precio Unit.</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                value={item.unit_price || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  updateItemPrice(item.id, value === '' ? 0 : parseNumberInput(value));
+                                }}
+                                className="text-right h-10 mt-1 text-lg"
+                              />
+                            </div>
+
+                            <div className="text-right">
+                              <Label className="text-xs">Total</Label>
+                              <p className="font-medium text-lg mt-1">
+                                ${((item.unit_price || 0) * item.quantity).toFixed(2)}
+                              </p>
                             </div>
                           </div>
-
-                          <div className="space-y-1">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={item.unit_price}
-                              onChange={(e) => updateItemPrice(item.id, parseFloat(e.target.value) || 0)}
-                              className="w-20 text-right"
-                            />
-                            <p className="text-sm text-gray-500 text-right">
-                              ${((item.unit_price || 0) * item.quantity).toFixed(2)}
-                            </p>
-                          </div>
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => removeItem(item.id)}
-                            className="ml-2"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -399,10 +441,10 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="h-12 text-lg px-6">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || items.length === 0}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || items.length === 0} className="h-12 text-lg px-6">
             {isSubmitting ? 'Creando...' : 'Crear Venta'}
           </Button>
         </DialogFooter>

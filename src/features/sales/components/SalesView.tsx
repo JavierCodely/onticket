@@ -67,6 +67,16 @@ export const SalesView: React.FC = () => {
     }
   }, [error, clearError]);
 
+  // Update selected sale when sales data changes
+  useEffect(() => {
+    if (selectedSale && sales.length > 0) {
+      const updatedSale = sales.find(sale => sale.id === selectedSale.id);
+      if (updatedSale) {
+        setSelectedSale(updatedSale);
+      }
+    }
+  }, [sales, selectedSale?.id]);
+
   const handleCreateSale = () => {
     setSelectedSale(null);
     setIsAddModalOpen(true);
