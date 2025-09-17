@@ -225,130 +225,139 @@ export const SalesView: React.FC = () => {
           </div>
 
           {/* Barra de filtros */}
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <div className="space-y-4 mt-4">
+            {/* Primera fila de filtros */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por número, empleado o notas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Método de pago" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los métodos</SelectItem>
+                  {Object.entries(PAYMENT_METHOD_CONFIG).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  {Object.entries(SALE_STATUS_CONFIG).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <Input
-                placeholder="Buscar por número, empleado o notas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                placeholder="Filtrar por empleado"
+                value={selectedEmployee}
+                onChange={(e) => setSelectedEmployee(e.target.value)}
+                className="w-full sm:w-48"
               />
             </div>
 
-            <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Método de pago" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los métodos</SelectItem>
-                {Object.entries(PAYMENT_METHOD_CONFIG).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    {config.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                {Object.entries(SALE_STATUS_CONFIG).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    {config.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Input
-              placeholder="Filtrar por empleado"
-              value={selectedEmployee}
-              onChange={(e) => setSelectedEmployee(e.target.value)}
-              className="w-full sm:w-48"
-            />
-
-            {/* Filtros de fecha */}
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2 items-center">
+            {/* Segunda fila - Filtros de fecha */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-gray-400" />
-                <Input
-                  type="date"
-                  placeholder="Fecha desde"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full sm:w-40"
-                />
-                <span className="text-gray-400 text-sm">hasta</span>
-                <Input
-                  type="date"
-                  placeholder="Fecha hasta"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full sm:w-40"
-                />
-                {(startDate || endDate) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setStartDate('');
-                      setEndDate('');
-                    }}
-                    className="text-xs"
-                  >
-                    Limpiar
-                  </Button>
-                )}
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Filtrar por fecha:</span>
               </div>
 
-              {/* Accesos rápidos de fecha */}
-              <div className="flex gap-1 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date().toISOString().split('T')[0];
-                    setStartDate(today);
-                    setEndDate(today);
-                  }}
-                  className="text-xs"
-                >
-                  Hoy
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const weekStart = new Date(today);
-                    weekStart.setDate(today.getDate() - today.getDay());
-                    const weekEnd = new Date(today);
-                    weekEnd.setDate(today.getDate() + (6 - today.getDay()));
-                    setStartDate(weekStart.toISOString().split('T')[0]);
-                    setEndDate(weekEnd.toISOString().split('T')[0]);
-                  }}
-                  className="text-xs"
-                >
-                  Esta semana
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-                    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                    setStartDate(monthStart.toISOString().split('T')[0]);
-                    setEndDate(monthEnd.toISOString().split('T')[0]);
-                  }}
-                  className="text-xs"
-                >
-                  Este mes
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-2 flex-1">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    placeholder="Fecha desde"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full sm:w-40"
+                  />
+                  <span className="text-gray-400 text-sm whitespace-nowrap">hasta</span>
+                  <Input
+                    type="date"
+                    placeholder="Fecha hasta"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full sm:w-40"
+                  />
+                </div>
+
+                {/* Accesos rápidos y limpiar */}
+                <div className="flex gap-1 items-center flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      setStartDate(today);
+                      setEndDate(today);
+                    }}
+                    className="text-xs h-8"
+                  >
+                    Hoy
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date();
+                      const weekStart = new Date(today);
+                      weekStart.setDate(today.getDate() - today.getDay());
+                      const weekEnd = new Date(today);
+                      weekEnd.setDate(today.getDate() + (6 - today.getDay()));
+                      setStartDate(weekStart.toISOString().split('T')[0]);
+                      setEndDate(weekEnd.toISOString().split('T')[0]);
+                    }}
+                    className="text-xs h-8"
+                  >
+                    Semana
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const today = new Date();
+                      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                      setStartDate(monthStart.toISOString().split('T')[0]);
+                      setEndDate(monthEnd.toISOString().split('T')[0]);
+                    }}
+                    className="text-xs h-8"
+                  >
+                    Mes
+                  </Button>
+                  {(startDate || endDate) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setStartDate('');
+                        setEndDate('');
+                      }}
+                      className="text-xs h-8"
+                    >
+                      Limpiar
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
