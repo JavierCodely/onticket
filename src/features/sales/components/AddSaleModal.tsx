@@ -108,7 +108,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         product_sale_price: product.sale_price,
         available_stock: product.available_stock
       };
-      setItems(prev => [...prev, newItem]);
+      setItems(prev => [newItem, ...prev]);
     }
     setSearchTerm('');
   };
@@ -183,7 +183,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
-      <DialogContent className="w-[98vw] h-[95vh] !max-w-[98vw] !max-h-[95vh] overflow-y-auto [&>*]:max-w-none">
+      <DialogContent className="w-[98vw] h-[95vh] !max-w-[98vw] !max-h-[95vh] overflow-hidden [&>*]:max-w-none flex flex-col">
         <DialogHeader>
           <DialogTitle>Nueva Venta</DialogTitle>
           <DialogDescription>
@@ -191,9 +191,9 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
+        <div className="flex-1 flex gap-6 p-4 min-h-0">
           {/* Información de la venta */}
-          <div className="space-y-6">
+          <div className="flex-1 space-y-4 overflow-y-auto">
             <div className="space-y-2">
               <Label>Empleado que realiza la venta</Label>
               <Select value={formData.employee_user_id} onValueChange={handleEmployeeChange}>
