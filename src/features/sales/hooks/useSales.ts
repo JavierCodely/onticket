@@ -119,6 +119,21 @@ export const useSales = () => {
     }
   }, [loadTodaySales]);
 
+  const refundSale = useCallback(async (saleId: string, reason: string): Promise<boolean> => {
+    try {
+      setError(null);
+      const success = await salesService.refundSale(saleId, reason);
+      if (success) {
+        await loadTodaySales(); // Reload to show the updated sale
+      }
+      return success;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al reembolsar venta';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [loadTodaySales]);
+
   const getSalesStats = useCallback(async (startDate?: string, endDate?: string): Promise<SaleStats> => {
     try {
       return await salesService.getSalesStats(startDate, endDate);
@@ -162,11 +177,14 @@ export const useSales = () => {
   }, [sales]);
 
   const getSalesStatsFromData = useCallback(() => {
-    const totalSales = sales.length;
-    const totalAmount = sales.reduce((sum, sale) => sum + sale.total_amount, 0);
+    // Solo incluir ventas completadas en las estadísticas principales
+    const completedSales = sales.filter(s => s.status === 'completed');
+
+    const totalSales = completedSales.length;
+    const totalAmount = completedSales.reduce((sum, sale) => sum + sale.total_amount, 0);
     const avgSaleAmount = totalSales > 0 ? totalAmount / totalSales : 0;
 
-    const paymentMethods = sales.reduce((acc, sale) => {
+    const paymentMethods = completedSales.reduce((acc, sale) => {
       if (!acc[sale.payment_method]) {
         acc[sale.payment_method] = { count: 0, amount: 0 };
       }
@@ -175,7 +193,7 @@ export const useSales = () => {
       return acc;
     }, {} as Partial<Record<PaymentMethod, { count: number; amount: number }>>);
 
-    const employees = sales.reduce((acc, sale) => {
+    const employees = completedSales.reduce((acc, sale) => {
       if (!acc[sale.employee_name]) {
         acc[sale.employee_name] = { count: 0, amount: 0 };
       }
@@ -213,6 +231,7 @@ export const useSales = () => {
     addSaleItem,
     updateSaleItem,
     removeSaleItem,
+    refundSale,
     getSalesStats,
     filterSales,
     getSalesStatsFromData,

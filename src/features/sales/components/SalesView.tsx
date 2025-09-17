@@ -36,6 +36,7 @@ export const SalesView: React.FC = () => {
     addSaleItem,
     updateSaleItem,
     removeSaleItem,
+    refundSale,
     filterSales,
     getSalesStatsFromData,
     clearError
@@ -478,6 +479,7 @@ export const SalesView: React.FC = () => {
         onAddItem={addSaleItem}
         onUpdateItem={updateSaleItem}
         onRemoveItem={removeSaleItem}
+        onRefundSale={refundSale}
         employees={employees}
       />
 

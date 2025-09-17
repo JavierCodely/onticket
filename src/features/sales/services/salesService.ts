@@ -221,6 +221,27 @@ export class SalesService {
     }
   }
 
+  async refundSale(saleId: string, reason: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .rpc('fn_cancel_refund_sale', {
+          p_sale_id: saleId,
+          p_action: 'refunded',
+          p_reason: reason
+        });
+
+      if (error) {
+        console.error('Error refunding sale:', error);
+        throw new Error(`Error al reembolsar venta: ${error.message}`);
+      }
+
+      return data === true;
+    } catch (error) {
+      console.error('Error in refundSale:', error);
+      throw error;
+    }
+  }
+
   async getSalesStats(startDate?: string, endDate?: string): Promise<SaleStats> {
     try {
       const { data, error } = await supabase

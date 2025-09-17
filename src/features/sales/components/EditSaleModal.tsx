@@ -33,6 +33,7 @@ interface EditSaleModalProps {
   onAddItem: (saleId: string, productId: string, quantity: number, unitPrice?: number) => Promise<void>;
   onUpdateItem: (itemId: string, quantity?: number, unitPrice?: number) => Promise<void>;
   onRemoveItem: (itemId: string) => Promise<void>;
+  onRefundSale: (saleId: string, reason: string) => Promise<boolean>;
   employees: Array<{ user_id: string; full_name: string; category: string; }>;
 }
 
@@ -44,6 +45,7 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
   onAddItem,
   onUpdateItem,
   onRemoveItem,
+  onRefundSale,
   employees
 }) => {
   const { products } = useProducts();
@@ -187,6 +189,29 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
         [field]: value
       }
     }));
+  };
+
+  const handleRefund = async () => {
+    if (!sale) return;
+
+    if (!formData.refund_reason.trim()) {
+      alert('Debe especificar la razón del reembolso');
+      return;
+    }
+
+    if (!confirm('¿Está seguro de reembolsar esta venta? Esta acción restaurará el stock y no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await onRefundSale(sale.id, formData.refund_reason);
+      onClose();
+    } catch (error) {
+      console.error('Error refunding sale:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -538,13 +563,27 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
-          </Button>
+        <DialogFooter className="flex justify-between">
+          <div className="flex gap-2">
+            {sale.status === 'completed' && (
+              <Button
+                variant="destructive"
+                onClick={handleRefund}
+                disabled={isSubmitting || !formData.refund_reason.trim()}
+                className="text-sm"
+              >
+                {isSubmitting ? 'Reembolsando...' : 'Reembolsar Venta'}
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
