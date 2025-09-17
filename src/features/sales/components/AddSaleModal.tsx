@@ -130,11 +130,6 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     }));
   };
 
-  const updateItemPrice = (itemId: string, newPrice: number) => {
-    setItems(prev => prev.map(item =>
-      item.id === itemId ? { ...item, unit_price: newPrice } : item
-    ));
-  };
 
   const removeItem = (itemId: string) => {
     setItems(prev => prev.filter(item => item.id !== itemId));
@@ -187,8 +182,8 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-8xl w-[500vw] max-h-[95vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
+      <DialogContent className="w-[98vw] h-[95vh] !max-w-[98vw] !max-h-[95vh] overflow-y-auto [&>*]:max-w-none">
         <DialogHeader>
           <DialogTitle>Nueva Venta</DialogTitle>
           <DialogDescription>
@@ -196,7 +191,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
           {/* Información de la venta */}
           <div className="space-y-6">
             <div className="space-y-2">
@@ -386,8 +381,8 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                                   type="number"
                                   min="1"
                                   max={item.available_stock}
-                                  placeholder="1"
-                                  value={item.quantity || ''}
+                                  placeholder="Cantidad"
+                                  value={item.quantity === 1 ? '' : item.quantity}
                                   onChange={(e) => {
                                     const value = e.target.value;
                                     const newQuantity = value === '' ? 1 : parseNumberInput(value) || 1;
@@ -409,18 +404,9 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
                             <div>
                               <Label className="text-xs">Precio Unit.</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0.00"
-                                value={item.unit_price || ''}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  updateItemPrice(item.id, value === '' ? 0 : parseNumberInput(value));
-                                }}
-                                className="text-right h-10 mt-1 text-lg"
-                              />
+                              <div className="bg-gray-50 border rounded-md px-3 py-2 text-right h-10 mt-1 flex items-center justify-end text-lg font-medium">
+                                ${(item.unit_price || 0).toFixed(2)}
+                              </div>
                             </div>
 
                             <div className="text-right">

@@ -252,8 +252,8 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
   const calculatedTotal = calculatedSubtotal - formData.discount_amount;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
+      <DialogContent className="w-[98vw] h-[95vh] !max-w-[98vw] !max-h-[95vh] overflow-y-auto [&>*]:max-w-none">
         <DialogHeader>
           <DialogTitle>Editar Venta #{sale.sale_number}</DialogTitle>
           <DialogDescription>
@@ -261,7 +261,7 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
           {/* Información de la venta */}
           <div className="space-y-4">
             <div className="space-y-2">
