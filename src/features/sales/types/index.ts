@@ -1,6 +1,5 @@
-export type PaymentMethod = 'cash' | 'transfer' | 'credit' | 'debit' | 'mixed';
-
-export type SaleStatus = 'pending' | 'completed' | 'cancelled' | 'refunded';
+export type PaymentMethod = 'cash' | 'transfer' | 'credit' | 'debit';
+export type SaleStatus = 'completed' | 'cancelled' | 'refunded';
 
 export interface Sale {
   id: string;
@@ -9,15 +8,17 @@ export interface Sale {
   sale_date: string;
   employee_id: string;
   employee_name: string;
+  employee_category?: string;
   subtotal: number;
   discount_amount: number;
-  tax_amount: number;
   total_amount: number;
   payment_method: PaymentMethod;
-  payment_details?: any; // JSON
+  payment_details?: Record<string, any>;
   status: SaleStatus;
   notes?: string;
   refund_reason?: string;
+  created_by?: string;
+  updated_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +29,7 @@ export interface SaleItem {
   product_id: string;
   product_name: string;
   product_sku?: string;
+  product_category?: string;
   unit_price: number;
   quantity: number;
   line_total: number;
@@ -36,53 +38,39 @@ export interface SaleItem {
 
 export interface SaleWithDetails extends Sale {
   employee_full_name?: string;
-  employee_category?: string;
+  employee_role?: string;
   items_count: number;
-  items: Array<{
-    id: string;            // ID real del sale_item
-    product_id: string;    // ID del producto
-    product_name: string;
-    product_sku?: string;
-    quantity: number;
-    unit_price: number;
-    line_total: number;
-    created_at: string;
-  }>;
+  items: SaleItem[];
 }
 
 export interface CreateSaleItem {
   product_id: string;
   quantity: number;
-  unit_price: number;
+  unit_price?: number;
 }
 
 export interface CreateSaleData {
+  employee_user_id?: string;
+  employee_name: string;
   items: CreateSaleItem[];
   payment_method: PaymentMethod;
-  payment_details?: any;
+  payment_details?: Record<string, any>;
   discount_amount?: number;
   notes?: string;
 }
 
 export interface UpdateSaleData {
-  employeeName?: string;
-  paymentMethod?: PaymentMethod;
-  paymentDetails?: any;
-  discountAmount?: number;
+  employee_user_id?: string;
+  employee_name?: string;
+  payment_method?: PaymentMethod;
+  payment_details?: Record<string, any>;
+  discount_amount?: number;
   notes?: string;
   status?: SaleStatus;
-  refundReason?: string;
+  refund_reason?: string;
 }
 
-export interface EditSaleItem extends CreateSaleItem {
-  id: string;
-  product_name: string;
-  product_sku?: string;
-  line_total: number;
-  created_at: string;
-}
-
-export interface SalesStats {
+export interface SaleStats {
   total_sales: number;
   total_amount: number;
   avg_sale_amount: number;
@@ -90,10 +78,9 @@ export interface SalesStats {
     count: number;
     amount: number;
   }>;
-  top_employees: Array<{
-    employee_name: string;
-    sales_count: number;
-    total_amount: number;
+  employees: Record<string, {
+    count: number;
+    amount: number;
   }>;
 }
 
@@ -106,7 +93,7 @@ export const PAYMENT_METHOD_CONFIG = {
   },
   transfer: {
     label: 'Transferencia',
-    icon: 'ArrowRightLeft',
+    icon: 'ArrowLeftRight',
     color: 'text-blue-600',
     bgColor: 'bg-blue-50'
   },
@@ -121,22 +108,10 @@ export const PAYMENT_METHOD_CONFIG = {
     icon: 'CreditCard',
     color: 'text-orange-600',
     bgColor: 'bg-orange-50'
-  },
-  mixed: {
-    label: 'Mixto',
-    icon: 'Shuffle',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-50'
   }
 } as const;
 
 export const SALE_STATUS_CONFIG = {
-  pending: {
-    label: 'Pendiente',
-    color: 'text-yellow-700',
-    bgColor: 'bg-yellow-100',
-    badgeVariant: 'secondary'
-  },
   completed: {
     label: 'Completada',
     color: 'text-green-700',
@@ -151,8 +126,8 @@ export const SALE_STATUS_CONFIG = {
   },
   refunded: {
     label: 'Reembolsada',
-    color: 'text-orange-700',
-    bgColor: 'bg-orange-100',
-    badgeVariant: 'outline'
+    color: 'text-yellow-700',
+    bgColor: 'bg-yellow-100',
+    badgeVariant: 'secondary'
   }
 } as const;

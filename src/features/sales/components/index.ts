@@ -1,7 +1,4 @@
 export { SalesView } from './SalesView';
-export { TodaySalesCard } from './TodaySalesCard';
-export { SalesList } from './SalesList';
-export { SalesStats } from './SalesStats';
-export { NewSaleModal } from './NewSaleModal';
+export { AddSaleModal } from './AddSaleModal';
 export { EditSaleModal } from './EditSaleModal';
 export { SaleDetailsModal } from './SaleDetailsModal';

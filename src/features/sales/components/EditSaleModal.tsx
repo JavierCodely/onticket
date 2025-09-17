@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/shared/components/ui/dialog';
+import { Plus, Search, X, Edit } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -20,96 +19,60 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/shared/components/ui/form';
-import { Badge } from '@/shared/components/ui/badge';
-import { Separator } from '@/shared/components/ui/separator';
-import { Alert, AlertDescription } from '@/shared/components/ui/alert';
-import {
-  Plus,
-  Minus,
-  Trash2,
-  AlertTriangle,
-  Package,
-  Edit3,
-  Save
-} from 'lucide-react';
-import { useSales } from '../hooks/useSales';
+import { Card, CardContent } from '@/shared/components/ui/card';
 import { useProducts } from '@/features/products/hooks/useProducts';
-import {
-  PAYMENT_METHOD_CONFIG,
-  SALE_STATUS_CONFIG
-} from '../types/sales';
-import type {
-  SaleWithDetails
-} from '../types/sales';
-
-const editSaleSchema = z.object({
-  employee_name: z.string().min(1, 'Nombre del empleado requerido'),
-  payment_method: z.enum(['cash', 'transfer', 'credit', 'debit', 'mixed']),
-  payment_details: z.any().optional(),
-  discount_amount: z.coerce.number().min(0, 'El descuento debe ser mayor o igual a 0'),
-  notes: z.string().optional(),
-  status: z.enum(['pending', 'completed', 'cancelled', 'refunded']).optional(),
-  refund_reason: z.string().optional(),
-});
-
-type EditSaleFormData = z.infer<typeof editSaleSchema>;
+import type { SaleWithDetails, UpdateSaleData, PaymentMethod, SaleStatus, SaleItem } from '../types';
+import { PAYMENT_METHOD_CONFIG, SALE_STATUS_CONFIG } from '../types';
 
 interface EditSaleModalProps {
   isOpen: boolean;
   onClose: () => void;
   sale: SaleWithDetails | null;
-}
-
-interface EditableItem {
-  id: string;
-  product_id: string;
-  product_name: string;
-  product_sku?: string;
-  quantity: number;
-  unit_price: number;
-  line_total: number;
-  isNew?: boolean;
-  isModified?: boolean;
-  toDelete?: boolean;
+  onUpdateSale: (saleId: string, data: UpdateSaleData) => Promise<void>;
+  onAddItem: (saleId: string, productId: string, quantity: number, unitPrice?: number) => Promise<void>;
+  onUpdateItem: (itemId: string, quantity?: number, unitPrice?: number) => Promise<void>;
+  onRemoveItem: (itemId: string) => Promise<void>;
+  employees: Array<{ user_id: string; full_name: string; category: string; }>;
 }
 
 export const EditSaleModal: React.FC<EditSaleModalProps> = ({
   isOpen,
   onClose,
-  sale
+  sale,
+  onUpdateSale,
+  onAddItem,
+  onUpdateItem,
+  onRemoveItem,
+  employees
 }) => {
-  const { updateSale, addSaleItem, updateSaleItem, removeSaleItem, cancelRefundSale, error, fetchSales, fetchTodaySales } = useSales();
   const { products } = useProducts();
-  const [editableItems, setEditableItems] = useState<EditableItem[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancelAction, setCancelAction] = useState<'cancelled' | 'refunded'>('cancelled');
-  const [cancelReason, setCancelReason] = useState('');
 
-  const form = useForm<EditSaleFormData>({
-    resolver: zodResolver(editSaleSchema),
-    defaultValues: {
-      employee_name: '',
-      payment_method: 'cash',
-      discount_amount: 0,
-      notes: '',
-      status: 'completed'
-    }
+  const [formData, setFormData] = useState({
+    employee_user_id: '',
+    employee_name: '',
+    payment_method: '' as PaymentMethod,
+    discount_amount: 0,
+    notes: '',
+    status: 'completed' as SaleStatus,
+    refund_reason: ''
   });
 
-  // Cargar datos de la venta cuando se abre el modal
+  const [editingItems, setEditingItems] = useState<Record<string, { quantity: number; unit_price: number }>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const availableProducts = products.filter(product =>
+    product.status === 'active' &&
+    product.available_stock > 0 &&
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    !sale?.items.some(item => item.product_id === product.id)
+  );
+
   useEffect(() => {
     if (sale) {
-      form.reset({
-        employee_name: sale.employee_name,
+      setFormData({
+        employee_user_id: sale.employee_id || '',
+        employee_name: sale.employee_name || '',
         payment_method: sale.payment_method,
         discount_amount: sale.discount_amount,
         notes: sale.notes || '',
@@ -117,157 +80,122 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
         refund_reason: sale.refund_reason || ''
       });
 
-      // Convertir items de la venta a formato editable
-      const items: EditableItem[] = sale.items.map((item) => ({
-        id: item.id,                    // ID real del sale_item
-        product_id: item.product_id,    // ID real del producto
-        product_name: item.product_name,
-        product_sku: item.product_sku,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        line_total: item.line_total
-      }));
-
-      setEditableItems(items);
+      // Initialize editing state for existing items
+      const editingState: Record<string, { quantity: number; unit_price: number }> = {};
+      sale.items.forEach(item => {
+        editingState[item.id] = {
+          quantity: item.quantity,
+          unit_price: item.unit_price
+        };
+      });
+      setEditingItems(editingState);
     }
-  }, [sale, form]);
+  }, [sale]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(amount);
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setEditingItems({});
+    }
+  }, [isOpen]);
+
+  const handleEmployeeChange = (userId: string) => {
+    const employee = employees.find(emp => emp.user_id === userId);
+    setFormData(prev => ({
+      ...prev,
+      employee_user_id: userId,
+      employee_name: employee?.full_name || ''
+    }));
   };
 
-  const calculateTotals = () => {
-    const activeItems = editableItems.filter(item => !item.toDelete);
-    const subtotal = activeItems.reduce((sum, item) => sum + item.line_total, 0);
-    const discountAmount = form.watch('discount_amount') || 0;
-    const total = subtotal - discountAmount;
-
-    return { subtotal, discountAmount, total };
-  };
-
-  const handleItemQuantityChange = (index: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-
-    setEditableItems(prev => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        quantity: newQuantity,
-        line_total: newQuantity * updated[index].unit_price,
-        isModified: true
-      };
-      return updated;
-    });
-  };
-
-  const handleItemPriceChange = (index: number, newPrice: number) => {
-    if (newPrice < 0) return;
-
-    setEditableItems(prev => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        unit_price: newPrice,
-        line_total: updated[index].quantity * newPrice,
-        isModified: true
-      };
-      return updated;
-    });
-  };
-
-  const handleRemoveItem = (index: number) => {
-    setEditableItems(prev => {
-      const updated = [...prev];
-      if (updated[index].isNew) {
-        // Eliminar completamente si es nuevo
-        return updated.filter((_, i) => i !== index);
-      } else {
-        // Marcar para eliminar si existe
-        updated[index] = { ...updated[index], toDelete: true };
-      }
-      return updated;
-    });
-  };
-
-  const handleAddNewItem = () => {
-    const newItem: EditableItem = {
-      id: `new-${Date.now()}`,
-      product_id: '',
-      product_name: '',
-      quantity: 1,
-      unit_price: 0,
-      line_total: 0,
-      isNew: true
-    };
-    setEditableItems(prev => [...prev, newItem]);
-  };
-
-  const handleNewItemProductChange = (index: number, productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-
-    setEditableItems(prev => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        product_id: productId,
-        product_name: product.name,
-        product_sku: product.sku,
-        unit_price: product.price,
-        line_total: updated[index].quantity * product.price
-      };
-      return updated;
-    });
-  };
-
-  const handleSubmit = async (data: EditSaleFormData) => {
+  const handleAddProduct = async (productId: string) => {
     if (!sale) return;
 
-    setIsSubmitting(true);
     try {
-      console.log('Starting sale update process...');
+      await onAddItem(sale.id, productId, 1);
+      setSearchTerm('');
+    } catch (error) {
+      console.error('Error adding product:', error);
+    }
+  };
 
-      // 1. Actualizar datos básicos de la venta
-      console.log('Updating basic sale data...');
-      await updateSale({
-        saleId: sale.id,
-        employeeName: data.employee_name,
-        paymentMethod: data.payment_method,
-        paymentDetails: data.payment_details,
-        discountAmount: data.discount_amount,
-        notes: data.notes,
-        status: data.status
-      });
+  const handleUpdateItem = async (itemId: string) => {
+    const editData = editingItems[itemId];
+    if (!editData) return;
 
-      // 2. Procesar cambios en items
-      console.log('Processing item changes...');
-      for (const [index, item] of editableItems.entries()) {
-        if (item.toDelete && !item.isNew) {
-          console.log('Removing item:', item.id);
-          await removeSaleItem(item.id);
-        } else if (item.isNew && item.product_id) {
-          console.log('Adding new item:', item.product_id);
-          await addSaleItem(sale.id, {
-            product_id: item.product_id,
-            quantity: item.quantity,
-            unit_price: item.unit_price
-          });
-        } else if (item.isModified && !item.isNew) {
-          console.log('Updating item:', item.id);
-          await updateSaleItem(item.id, item.quantity, item.unit_price);
+    try {
+      await onUpdateItem(itemId, editData.quantity, editData.unit_price);
+    } catch (error) {
+      console.error('Error updating item:', error);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (!sale || sale.items.length <= 1) {
+      alert('No se puede eliminar el último item de la venta');
+      return;
+    }
+
+    try {
+      await onRemoveItem(itemId);
+    } catch (error) {
+      console.error('Error removing item:', error);
+    }
+  };
+
+  const updateEditingItem = (itemId: string, field: 'quantity' | 'unit_price', value: number) => {
+    setEditingItems(prev => ({
+      ...prev,
+      [itemId]: {
+        ...prev[itemId],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!sale) return;
+
+    if (!formData.employee_name.trim()) {
+      alert('Debe especificar el nombre del empleado');
+      return;
+    }
+
+    if (!formData.payment_method) {
+      alert('Debe seleccionar un método de pago');
+      return;
+    }
+
+    if (formData.status === 'refunded' && !formData.refund_reason.trim()) {
+      alert('Debe especificar la razón del reembolso');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // First update all items that have changes
+      for (const [itemId, editData] of Object.entries(editingItems)) {
+        const originalItem = sale.items.find(item => item.id === itemId);
+        if (originalItem &&
+            (originalItem.quantity !== editData.quantity ||
+             originalItem.unit_price !== editData.unit_price)) {
+          await onUpdateItem(itemId, editData.quantity, editData.unit_price);
         }
       }
 
-      console.log('Sale update completed successfully');
+      // Then update the sale data
+      const updateData: UpdateSaleData = {
+        employee_user_id: formData.employee_user_id || undefined,
+        employee_name: formData.employee_name,
+        payment_method: formData.payment_method,
+        discount_amount: formData.discount_amount,
+        notes: formData.notes || undefined,
+        status: formData.status,
+        refund_reason: formData.status === 'refunded' ? formData.refund_reason : undefined
+      };
 
-      // Forzar actualización adicional para asegurar que los cambios se reflejen
-      await new Promise(resolve => setTimeout(resolve, 200));
-      await Promise.all([fetchSales(), fetchTodaySales()]);
-
-      console.log('Final data refresh completed');
+      await onUpdateSale(sale.id, updateData);
       onClose();
     } catch (error) {
       console.error('Error updating sale:', error);
@@ -276,396 +204,300 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
     }
   };
 
-  const handleCancelRefund = async () => {
-    if (!sale) return;
-
-    try {
-      console.log('Cancelling/refunding sale:', sale.id);
-      await cancelRefundSale(sale.id, cancelAction, cancelReason);
-
-      // Forzar un pequeño delay para asegurar que las actualizaciones se procesen
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      setShowCancelDialog(false);
-      onClose();
-    } catch (error) {
-      console.error('Error cancelling/refunding sale:', error);
-    }
-  };
-
   if (!sale) return null;
 
-  const { subtotal, discountAmount, total } = calculateTotals();
-  const canEdit = sale.status === 'pending' || sale.status === 'completed';
+  const calculatedSubtotal = sale.items.reduce((sum, item) => {
+    const editData = editingItems[item.id];
+    const quantity = editData?.quantity ?? item.quantity;
+    const unitPrice = editData?.unit_price ?? item.unit_price;
+    return sum + (quantity * unitPrice);
+  }, 0);
+
+  const calculatedTotal = calculatedSubtotal - formData.discount_amount;
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit3 className="h-5 w-5" />
-              Editar Venta #{sale.sale_number}
-            </DialogTitle>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar Venta #{sale.sale_number}</DialogTitle>
+          <DialogDescription>
+            Modifica los detalles de la venta. Los cambios en precios actualizarán automáticamente los totales.
+          </DialogDescription>
+        </DialogHeader>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-              {/* Información básica */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="employee_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Empleado</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled={!canEdit} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="payment_method"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Método de Pago</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={!canEdit}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.entries(PAYMENT_METHOD_CONFIG).map(([key, config]) => (
-                            <SelectItem key={key} value={key}>
-                              {config.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="discount_amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descuento</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          {...field}
-                          disabled={!canEdit}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.entries(SALE_STATUS_CONFIG).map(([key, config]) => (
-                            <SelectItem key={key} value={key}>
-                              {config.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notas</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} disabled={!canEdit} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Separator />
-
-              {/* Items de venta */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium">Items de venta</h3>
-                  {canEdit && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddNewItem}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Agregar item
-                    </Button>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  {editableItems.filter(item => !item.toDelete).map((item, index) => (
-                    <div
-                      key={item.id}
-                      className={`p-4 border rounded-lg ${item.isNew ? 'border-blue-200 bg-blue-50' : ''} ${item.isModified ? 'border-yellow-200 bg-yellow-50' : ''}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-gray-400" />
-                          {item.isNew ? (
-                            <Select
-                              value={item.product_id}
-                              onValueChange={(value) => handleNewItemProductChange(index, value)}
-                            >
-                              <SelectTrigger className="w-64">
-                                <SelectValue placeholder="Seleccionar producto" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {products.map((product) => (
-                                  <SelectItem key={product.id} value={product.id}>
-                                    {product.name} - {formatCurrency(product.price)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <span className="font-medium">{item.product_name}</span>
-                          )}
-                          {item.product_sku && (
-                            <Badge variant="outline">{item.product_sku}</Badge>
-                          )}
-                        </div>
-                        {canEdit && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveItem(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                          <Label>Cantidad</Label>
-                          <div className="flex items-center gap-2 mt-1">
-                            {canEdit && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleItemQuantityChange(index, item.quantity - 1)}
-                                disabled={item.quantity <= 1}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                            )}
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => handleItemQuantityChange(index, parseInt(e.target.value) || 1)}
-                              disabled={!canEdit}
-                              className="text-center"
-                            />
-                            {canEdit && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleItemQuantityChange(index, item.quantity + 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label>Precio unitario</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={item.unit_price}
-                            onChange={(e) => handleItemPriceChange(index, parseFloat(e.target.value) || 0)}
-                            disabled={!canEdit}
-                            className="mt-1"
-                          />
-                        </div>
-
-                        <div>
-                          <Label>Total línea</Label>
-                          <div className="mt-1 p-2 bg-gray-50 border rounded text-right font-medium">
-                            {formatCurrency(item.line_total)}
-                          </div>
-                        </div>
-
-                        <div className="flex items-end">
-                          {item.isNew && (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                              Nuevo
-                            </Badge>
-                          )}
-                          {item.isModified && !item.isNew && (
-                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">
-                              Modificado
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Totales */}
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>{formatCurrency(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Descuento:</span>
-                      <span>-{formatCurrency(discountAmount)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between text-lg font-semibold">
-                      <span>Total:</span>
-                      <span>{formatCurrency(total)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                <div className="flex gap-2">
-                  {canEdit && (
-                    <>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={() => {
-                          setCancelAction('cancelled');
-                          setShowCancelDialog(true);
-                        }}
-                      >
-                        Cancelar venta
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setCancelAction('refunded');
-                          setShowCancelDialog(true);
-                        }}
-                      >
-                        Reembolsar
-                      </Button>
-                    </>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={onClose}>
-                    Cancelar
-                  </Button>
-                  {canEdit && (
-                    <Button type="submit" disabled={isSubmitting}>
-                      <Save className="h-4 w-4 mr-2" />
-                      {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
-                    </Button>
-                  )}
-                </div>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de cancelación/reembolso */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {cancelAction === 'cancelled' ? 'Cancelar venta' : 'Reembolsar venta'}
-            </DialogTitle>
-          </DialogHeader>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Información de la venta */}
           <div className="space-y-4">
-            <p>
-              ¿Estás seguro que deseas {cancelAction === 'cancelled' ? 'cancelar' : 'reembolsar'} esta venta?
-              Esta acción no se puede deshacer.
-            </p>
+            <div className="space-y-2">
+              <Label>Empleado que realizó la venta</Label>
+              <Select value={formData.employee_user_id} onValueChange={handleEmployeeChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar empleado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((employee) => (
+                    <SelectItem key={employee.user_id} value={employee.user_id}>
+                      {employee.full_name} ({employee.category})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <div>
-              <Label htmlFor="cancelReason">Motivo</Label>
-              <Textarea
-                id="cancelReason"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Ingresa el motivo..."
-                className="mt-1"
+              <div className="text-sm text-gray-500">
+                O modifica manualmente:
+              </div>
+              <Input
+                placeholder="Nombre del empleado"
+                value={formData.employee_name}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  employee_name: e.target.value,
+                  employee_user_id: ''
+                }))}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>Método de pago</Label>
+              <Select value={formData.payment_method} onValueChange={(value: PaymentMethod) =>
+                setFormData(prev => ({ ...prev, payment_method: value }))
+              }>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PAYMENT_METHOD_CONFIG).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Estado de la venta</Label>
+              <Select value={formData.status} onValueChange={(value: SaleStatus) =>
+                setFormData(prev => ({ ...prev, status: value }))
+              }>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SALE_STATUS_CONFIG).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.status === 'refunded' && (
+              <div className="space-y-2">
+                <Label>Razón del reembolso</Label>
+                <Textarea
+                  placeholder="Especifica la razón del reembolso..."
+                  value={formData.refund_reason}
+                  onChange={(e) => setFormData(prev => ({ ...prev, refund_reason: e.target.value }))}
+                  rows={2}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Descuento</Label>
+              <Input
+                type="number"
+                min="0"
+                max={calculatedSubtotal}
+                step="0.01"
+                value={formData.discount_amount}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  discount_amount: parseFloat(e.target.value) || 0
+                }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notas</Label>
+              <Textarea
+                placeholder="Notas adicionales sobre la venta..."
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                rows={3}
+              />
+            </div>
+
+            {/* Resumen de totales */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Fecha:</span>
+                    <span>{new Date(sale.sale_date).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>${calculatedSubtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Descuento:</span>
+                    <span>-${formData.discount_amount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Total:</span>
+                    <span>${calculatedTotal.toFixed(2)}</span>
+                  </div>
+                  {calculatedTotal !== sale.total_amount && (
+                    <div className="text-xs text-orange-600">
+                      Total original: ${sale.total_amount.toFixed(2)}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleCancelRefund}
-              disabled={!cancelReason.trim()}
-            >
-              {cancelAction === 'cancelled' ? 'Cancelar venta' : 'Reembolsar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          {/* Productos */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Agregar productos</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar productos para agregar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Lista de productos disponibles para agregar */}
+            {searchTerm && (
+              <div className="max-h-32 overflow-y-auto border rounded-lg">
+                {availableProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                    onClick={() => handleAddProduct(product.id)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-sm">{product.name}</p>
+                        <p className="text-xs text-gray-500">
+                          Stock: {product.available_stock} | ${product.sale_price}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Items de la venta */}
+            <div className="space-y-2">
+              <Label>Productos en la venta</Label>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {sale.items.map((item) => {
+                  const editData = editingItems[item.id] || { quantity: item.quantity, unit_price: item.unit_price };
+                  const hasChanges = editData.quantity !== item.quantity || editData.unit_price !== item.unit_price;
+
+                  return (
+                    <Card key={item.id} className={hasChanges ? 'border-orange-200 bg-orange-50' : ''}>
+                      <CardContent className="p-3">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{item.product_name}</p>
+                              <p className="text-xs text-gray-500">
+                                {item.product_sku && `SKU: ${item.product_sku}`}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="ml-2"
+                              disabled={sale.items.length <= 1}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 items-center">
+                            <div>
+                              <Label className="text-xs">Cantidad</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={editData.quantity}
+                                onChange={(e) => updateEditingItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                                className="text-center"
+                              />
+                            </div>
+
+                            <div>
+                              <Label className="text-xs">Precio Unit.</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={editData.unit_price}
+                                onChange={(e) => updateEditingItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                                className="text-right"
+                              />
+                            </div>
+
+                            <div className="text-right">
+                              <Label className="text-xs">Total</Label>
+                              <p className="font-medium">
+                                ${(editData.quantity * editData.unit_price).toFixed(2)}
+                              </p>
+                              {hasChanges && (
+                                <p className="text-xs text-gray-500">
+                                  Orig: ${(item.quantity * item.unit_price).toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {hasChanges && (
+                            <div className="flex justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateItem(item.id)}
+                                className="text-xs"
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Aplicar cambios
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

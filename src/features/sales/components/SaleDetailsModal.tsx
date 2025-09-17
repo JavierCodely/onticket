@@ -1,16 +1,15 @@
 import React from 'react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { Edit, Calendar, User, CreditCard, FileText, Package } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/shared/components/ui/dialog';
-import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
-import { Separator } from '@/shared/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import {
   Table,
   TableBody,
@@ -19,37 +18,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/shared/components/ui/table';
-import {
-  Receipt,
-  User,
-  Calendar,
-  CreditCard,
-  Package,
-  Edit3,
-  Clock,
-  FileText,
-  AlertCircle
-} from 'lucide-react';
-import {
-  PAYMENT_METHOD_CONFIG,
-  SALE_STATUS_CONFIG,
-  type SaleWithDetails
-} from '../types/sales';
+import { Badge } from '@/shared/components/ui/badge';
+import { Separator } from '@/shared/components/ui/separator';
+import type { SaleWithDetails } from '../types';
+import { PAYMENT_METHOD_CONFIG, SALE_STATUS_CONFIG } from '../types';
 
 interface SaleDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   sale: SaleWithDetails | null;
-  canEdit?: boolean;
-  onEditClick?: () => void;
+  onEdit: () => void;
 }
 
 export const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({
   isOpen,
   onClose,
   sale,
-  canEdit = false,
-  onEditClick
+  onEdit
 }) => {
   if (!sale) return null;
 
@@ -60,229 +45,223 @@ export const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({
     }).format(amount);
   };
 
-  const formatDateTime = (dateString: string) => {
-    return format(new Date(dateString), 'dd/MM/yyyy HH:mm:ss', { locale: es });
-  };
-
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd/MM/yyyy', { locale: es });
+    return new Date(dateString).toLocaleString('es-AR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
-
-  const formatTime = (dateString: string) => {
-    return format(new Date(dateString), 'HH:mm:ss', { locale: es });
-  };
-
-  const paymentConfig = PAYMENT_METHOD_CONFIG[sale.payment_method];
-  const statusConfig = SALE_STATUS_CONFIG[sale.status];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Detalle de Venta #{sale.sale_number}
+            <Package className="h-5 w-5" />
+            Venta #{sale.sale_number}
           </DialogTitle>
+          <DialogDescription>
+            Detalles completos de la venta
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Información básica */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <User className="h-4 w-4" />
-                Empleado
-              </div>
-              <p className="font-semibold">{sale.employee_name}</p>
-              {sale.employee_full_name && sale.employee_full_name !== sale.employee_name && (
-                <p className="text-sm text-gray-500">({sale.employee_full_name})</p>
-              )}
-              {sale.employee_category && (
-                <Badge variant="outline" className="text-xs">
-                  {sale.employee_category}
-                </Badge>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <Calendar className="h-4 w-4" />
-                Fecha y Hora
-              </div>
-              <p className="font-semibold">{formatDate(sale.sale_date)}</p>
-              <p className="text-sm text-gray-500 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatTime(sale.sale_date)}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <AlertCircle className="h-4 w-4" />
-                Estado
-              </div>
-              <Badge
-                variant={statusConfig.badgeVariant as any}
-                className={`${statusConfig.bgColor} ${statusConfig.color}`}
-              >
-                {statusConfig.label}
-              </Badge>
-              {sale.refund_reason && (
-                <p className="text-sm text-red-600 italic">
-                  Motivo: {sale.refund_reason}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <CreditCard className="h-4 w-4" />
-                Método de Pago
-              </div>
-              <Badge
-                variant="secondary"
-                className={`${paymentConfig.bgColor} ${paymentConfig.color}`}
-              >
-                {paymentConfig.label}
-              </Badge>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <Package className="h-4 w-4" />
-                Total de Items
-              </div>
-              <p className="font-semibold">{sale.items_count} item{sale.items_count !== 1 ? 's' : ''}</p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                <Receipt className="h-4 w-4" />
-                ID de Venta
-              </div>
-              <p className="text-sm font-mono text-gray-500">{sale.id}</p>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Productos vendidos */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Productos Vendidos
-            </h3>
-
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Producto</TableHead>
-                    <TableHead className="text-center">Cantidad</TableHead>
-                    <TableHead className="text-right">Precio Unit.</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sale.items.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{item.product_name}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline">{item.quantity}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {formatCurrency(item.unit_price)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        {formatCurrency(item.line_total)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Totales */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Resumen de Venta</h3>
-            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="font-mono">{formatCurrency(sale.subtotal)}</span>
-              </div>
-
-              {sale.discount_amount > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Descuento:</span>
-                  <span className="font-mono">-{formatCurrency(sale.discount_amount)}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Información general */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Información General
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <div>
+                    <p className="text-sm text-gray-500">Fecha de venta</p>
+                    <p className="font-medium">{formatDate(sale.sale_date)}</p>
+                  </div>
                 </div>
-              )}
 
-              {sale.tax_amount > 0 && (
+                <div className="flex items-center gap-3">
+                  <User className="h-4 w-4 text-gray-500" />
+                  <div>
+                    <p className="text-sm text-gray-500">Empleado</p>
+                    <p className="font-medium">{sale.employee_name}</p>
+                    {sale.employee_category && (
+                      <p className="text-xs text-gray-500 capitalize">
+                        {sale.employee_category}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-4 w-4 text-gray-500" />
+                  <div>
+                    <p className="text-sm text-gray-500">Método de pago</p>
+                    <Badge
+                      variant="outline"
+                      className={PAYMENT_METHOD_CONFIG[sale.payment_method].bgColor}
+                    >
+                      {PAYMENT_METHOD_CONFIG[sale.payment_method].label}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-500">Estado</p>
+                  <Badge
+                    variant={SALE_STATUS_CONFIG[sale.status].badgeVariant as any}
+                    className="mt-1"
+                  >
+                    {SALE_STATUS_CONFIG[sale.status].label}
+                  </Badge>
+                </div>
+
+                {sale.notes && (
+                  <div>
+                    <p className="text-sm text-gray-500">Notas</p>
+                    <p className="text-sm bg-gray-50 p-3 rounded-md mt-1">
+                      {sale.notes}
+                    </p>
+                  </div>
+                )}
+
+                {sale.refund_reason && (
+                  <div>
+                    <p className="text-sm text-gray-500">Razón del reembolso</p>
+                    <p className="text-sm bg-red-50 p-3 rounded-md mt-1 text-red-700">
+                      {sale.refund_reason}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Resumen financiero */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Resumen Financiero</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="font-medium">{formatCurrency(sale.subtotal)}</span>
+                  </div>
+
+                  {sale.discount_amount > 0 && (
+                    <div className="flex justify-between text-red-600">
+                      <span>Descuento:</span>
+                      <span>-{formatCurrency(sale.discount_amount)}</span>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total:</span>
+                    <span>{formatCurrency(sale.total_amount)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Información de auditoría */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Auditoría</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Impuestos:</span>
-                  <span className="font-mono">{formatCurrency(sale.tax_amount)}</span>
+                  <span className="text-gray-500">Creado:</span>
+                  <span>{formatDate(sale.created_at)}</span>
                 </div>
-              )}
-
-              <Separator />
-
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Total:</span>
-                <span className="font-mono text-green-600">
-                  {formatCurrency(sale.total_amount)}
-                </span>
-              </div>
-            </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Actualizado:</span>
+                  <span>{formatDate(sale.updated_at)}</span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Notas */}
-          {sale.notes && (
-            <>
-              <Separator />
-              <div>
-                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Notas
-                </h3>
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  <p className="text-sm">{sale.notes}</p>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Información de auditoría */}
-          <Separator />
-          <div className="text-xs text-gray-500 space-y-1">
-            <div className="flex items-center justify-between">
-              <span>Fecha de creación:</span>
-              <span>{formatDateTime(sale.created_at)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Última actualización:</span>
-              <span>{formatDateTime(sale.updated_at)}</span>
-            </div>
+          {/* Productos */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Productos ({sale.items_count} items)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sale.items.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No hay productos en esta venta
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Producto</TableHead>
+                          <TableHead className="text-center">Cant.</TableHead>
+                          <TableHead className="text-right">Precio</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sale.items.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{item.product_name}</p>
+                                {item.product_sku && (
+                                  <p className="text-xs text-gray-500">
+                                    SKU: {item.product_sku}
+                                  </p>
+                                )}
+                                {item.product_category && (
+                                  <p className="text-xs text-gray-500 capitalize">
+                                    {item.product_category.replace('_', ' ')}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {item.quantity}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(item.unit_price)}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(item.line_total)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cerrar
           </Button>
-          {canEdit && onEditClick && (
-            <Button onClick={onEditClick} className="flex items-center gap-2">
-              <Edit3 className="h-4 w-4" />
-              Editar Venta
-            </Button>
-          )}
+          <Button onClick={onEdit}>
+            <Edit className="h-4 w-4 mr-2" />
+            Editar Venta
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
