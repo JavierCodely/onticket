@@ -45,6 +45,8 @@ export const SalesView: React.FC = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | 'all'>('all');
   const [selectedStatus, setSelectedStatus] = useState<SaleStatus | 'all'>('all');
   const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -55,7 +57,9 @@ export const SalesView: React.FC = () => {
     searchTerm,
     selectedPaymentMethod === 'all' ? undefined : selectedPaymentMethod,
     selectedStatus === 'all' ? undefined : selectedStatus,
-    selectedEmployee
+    selectedEmployee,
+    startDate || undefined,
+    endDate || undefined
   );
 
   useEffect(() => {
@@ -266,6 +270,87 @@ export const SalesView: React.FC = () => {
               onChange={(e) => setSelectedEmployee(e.target.value)}
               className="w-full sm:w-48"
             />
+
+            {/* Filtros de fecha */}
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2 items-center">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <Input
+                  type="date"
+                  placeholder="Fecha desde"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full sm:w-40"
+                />
+                <span className="text-gray-400 text-sm">hasta</span>
+                <Input
+                  type="date"
+                  placeholder="Fecha hasta"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full sm:w-40"
+                />
+                {(startDate || endDate) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setStartDate('');
+                      setEndDate('');
+                    }}
+                    className="text-xs"
+                  >
+                    Limpiar
+                  </Button>
+                )}
+              </div>
+
+              {/* Accesos rápidos de fecha */}
+              <div className="flex gap-1 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    setStartDate(today);
+                    setEndDate(today);
+                  }}
+                  className="text-xs"
+                >
+                  Hoy
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const weekStart = new Date(today);
+                    weekStart.setDate(today.getDate() - today.getDay());
+                    const weekEnd = new Date(today);
+                    weekEnd.setDate(today.getDate() + (6 - today.getDay()));
+                    setStartDate(weekStart.toISOString().split('T')[0]);
+                    setEndDate(weekEnd.toISOString().split('T')[0]);
+                  }}
+                  className="text-xs"
+                >
+                  Esta semana
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    setStartDate(monthStart.toISOString().split('T')[0]);
+                    setEndDate(monthEnd.toISOString().split('T')[0]);
+                  }}
+                  className="text-xs"
+                >
+                  Este mes
+                </Button>
+              </div>
+            </div>
           </div>
         </CardHeader>
 

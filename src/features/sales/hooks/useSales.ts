@@ -138,7 +138,9 @@ export const useSales = () => {
     searchTerm: string = '',
     paymentMethod?: PaymentMethod,
     status?: SaleStatus,
-    employeeName?: string
+    employeeName?: string,
+    startDate?: string,
+    endDate?: string
   ) => {
     return sales.filter((sale) => {
       const matchesSearch = !searchTerm ||
@@ -150,7 +152,12 @@ export const useSales = () => {
       const matchesStatus = !status || sale.status === status;
       const matchesEmployee = !employeeName || sale.employee_name.toLowerCase().includes(employeeName.toLowerCase());
 
-      return matchesSearch && matchesPaymentMethod && matchesStatus && matchesEmployee;
+      // Filtro por fechas
+      const saleDate = new Date(sale.sale_date);
+      const matchesStartDate = !startDate || saleDate >= new Date(startDate + 'T00:00:00');
+      const matchesEndDate = !endDate || saleDate <= new Date(endDate + 'T23:59:59');
+
+      return matchesSearch && matchesPaymentMethod && matchesStatus && matchesEmployee && matchesStartDate && matchesEndDate;
     });
   }, [sales]);
 
