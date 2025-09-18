@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, ShoppingCart, TrendingUp, DollarSign, Users, Calendar, Eye, Edit } from 'lucide-react';
+import { Plus, Search, Filter, ShoppingCart, TrendingUp, DollarSign, Users, Calendar, Eye, Edit, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -39,7 +39,8 @@ export const SalesView: React.FC = () => {
     refundSale,
     filterSales,
     getSalesStatsFromData,
-    clearError
+    clearError,
+    loadTodaySales
   } = useSales();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +53,7 @@ export const SalesView: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SaleWithDetails | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filteredSales = filterSales(
     searchTerm,
@@ -182,6 +184,17 @@ export const SalesView: React.FC = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      await loadTodaySales();
+    } catch (error) {
+      console.error('Error refreshing sales:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -286,10 +299,21 @@ export const SalesView: React.FC = () => {
                 Registra y administra las ventas del día
               </CardDescription>
             </div>
-            <Button onClick={handleCreateSale}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Venta
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+              </Button>
+              <Button onClick={handleCreateSale}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Venta
+              </Button>
+            </div>
           </div>
 
           {/* Barra de filtros */}

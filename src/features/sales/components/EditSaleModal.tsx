@@ -134,14 +134,10 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
       return;
     }
 
-    if (editData.unit_price < 0) {
-      alert('El precio no puede ser negativo');
-      return;
-    }
-
     try {
-      console.log('Updating item:', itemId, 'with:', editData);
-      await onUpdateItem(itemId, editData.quantity, editData.unit_price);
+      console.log('Updating item:', itemId, 'with quantity:', editData.quantity);
+      // Solo pasar la cantidad, el precio unitario no se puede editar
+      await onUpdateItem(itemId, editData.quantity);
       console.log('Item updated successfully');
 
       // Show success message
@@ -238,10 +234,8 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
       // First update all items that have changes
       for (const [itemId, editData] of Object.entries(editingItems)) {
         const originalItem = sale.items.find(item => item.id === itemId);
-        if (originalItem &&
-            (originalItem.quantity !== editData.quantity ||
-             originalItem.unit_price !== editData.unit_price)) {
-          await onUpdateItem(itemId, editData.quantity, editData.unit_price);
+        if (originalItem && originalItem.quantity !== editData.quantity) {
+          await onUpdateItem(itemId, editData.quantity);
         }
       }
 
@@ -270,7 +264,8 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
   const calculatedSubtotal = sale.items.reduce((sum, item) => {
     const editData = editingItems[item.id];
     const quantity = editData?.quantity ?? item.quantity;
-    const unitPrice = editData?.unit_price ?? item.unit_price;
+    // Siempre usar el precio unitario original del item
+    const unitPrice = item.unit_price;
     return sum + (quantity * unitPrice);
   }, 0);
 
@@ -471,7 +466,7 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {sale.items.map((item) => {
                   const editData = editingItems[item.id] || { quantity: item.quantity, unit_price: item.unit_price };
-                  const hasChanges = editData.quantity !== item.quantity || editData.unit_price !== item.unit_price;
+                  const hasChanges = editData.quantity !== item.quantity; // Solo verificar cambios en cantidad
 
                   return (
                     <Card key={item.id} className={hasChanges ? 'border-orange-200 bg-orange-50' : ''}>
@@ -498,39 +493,62 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
                           <div className="grid grid-cols-3 gap-2 items-center">
                             <div>
                               <Label className="text-xs">Cantidad</Label>
-                              <Input
-                                type="number"
-                                min="1"
-                                placeholder="1"
-                                value={editData.quantity || ''}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  updateEditingItem(item.id, 'quantity', value === '' ? 1 : parseNumberInput(value) || 1);
-                                }}
-                                className="text-center"
-                              />
+                              <div className="relative">
+                                <Input
+                                  type="text"
+                                  placeholder="1"
+                                  value={editData.quantity || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, ''); // Solo números
+                                    const numValue = value === '' ? 1 : parseInt(value, 10);
+
+                                    // Obtener el stock disponible del producto
+                                    const product = products.find(p => p.name === item.product_name);
+                                    const availableStock = product?.available_stock || 0;
+                                    const currentItemStock = availableStock + item.quantity; // Stock actual + cantidad original del item
+
+                                    // Limitar al stock disponible
+                                    const limitedValue = Math.min(Math.max(1, numValue), currentItemStock);
+                                    updateEditingItem(item.id, 'quantity', limitedValue);
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  onKeyDown={(e) => {
+                                    // Solo permitir números, backspace, delete, tab, escape, enter, flechas
+                                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                      e.preventDefault();
+                                    }
+                                  }}
+                                  className="text-center font-medium"
+                                />
+                                {(() => {
+                                  const product = products.find(p => p.name === item.product_name);
+                                  const availableStock = product?.available_stock || 0;
+                                  const currentItemStock = availableStock + item.quantity;
+                                  return (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Máx: {currentItemStock}
+                                    </p>
+                                  );
+                                })()}
+                              </div>
                             </div>
 
                             <div>
                               <Label className="text-xs">Precio Unit.</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="0.00"
-                                value={editData.unit_price || ''}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  updateEditingItem(item.id, 'unit_price', value === '' ? 0 : parseNumberInput(value));
-                                }}
-                                className="text-right"
-                              />
+                              <div className="p-2 bg-gray-50 rounded border text-right">
+                                <p className="font-medium text-sm">
+                                  ${item.unit_price.toFixed(2)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  No editable
+                                </p>
+                              </div>
                             </div>
 
                             <div className="text-right">
                               <Label className="text-xs">Total</Label>
                               <p className="font-medium">
-                                ${(editData.quantity * editData.unit_price).toFixed(2)}
+                                ${(editData.quantity * item.unit_price).toFixed(2)}
                               </p>
                               {hasChanges && (
                                 <p className="text-xs text-gray-500">
