@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { initializeSecurity } from '@/core/config/security';
+
+// Inicializar configuraciones de seguridad
+initializeSecurity();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
