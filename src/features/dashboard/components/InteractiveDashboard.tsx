@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Badge } from '@/shared/components/ui/badge';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package } from 'lucide-react';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Button } from '@/shared/components/ui/button';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, Calendar } from 'lucide-react';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { DashboardFilters, type DashboardFiltersState } from './DashboardFilters';
-import { SalesSummaryCard } from './SalesSummaryCard';
 import { useDashboardData } from '../hooks/useDashboardData';
+import { useSales } from '@/features/sales/hooks/useSales';
 import {
-  SalesChart,
-  PaymentMethodsChart,
   TopProductsChart,
   EmployeePerformanceChart
 } from './charts';
@@ -60,6 +61,17 @@ export const InteractiveDashboard: React.FC = () => {
     productCategory: 'all'
   });
 
+  // Estados para filtro de fechas personalizado
+  const [startDate, setStartDate] = useState(() => {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return sevenDaysAgo.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+
   const {
     salesData,
     paymentData,
@@ -69,6 +81,51 @@ export const InteractiveDashboard: React.FC = () => {
     loading,
     error
   } = useDashboardData(filters);
+
+  // Hook para obtener datos reales de ventas con filtro de fechas
+  const { sales, filterSales, employees, loading: salesLoading } = useSales();
+
+  // Calcular KPIs reales basados en el filtro de fechas
+  const realTimeKPIs = useMemo(() => {
+    const filteredSales = filterSales('', undefined, undefined, '', startDate, endDate);
+    const completedSales = filteredSales.filter(sale => sale.status === 'completed');
+
+    const totalSales = completedSales.length;
+    const totalAmount = completedSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+    const averageTicket = totalSales > 0 ? totalAmount / totalSales : 0;
+
+    // Empleados únicos con ventas en el período
+    const activeEmployees = new Set(completedSales.map(sale => sale.employee_id)).size;
+
+    return {
+      totalSales,
+      totalAmount,
+      averageTicket,
+      activeEmployees,
+      completedSales
+    };
+  }, [sales, startDate, endDate, filterSales]);
+
+  // Helper functions para métodos de pago
+  const getPaymentMethodColor = (method: string) => {
+    const colors = {
+      cash: '#82ca9d',
+      transfer: '#8884d8',
+      credit: '#ffc658',
+      debit: '#ff7300'
+    };
+    return colors[method as keyof typeof colors] || '#888888';
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const labels = {
+      cash: 'Efectivo',
+      transfer: 'Transferencia',
+      credit: 'Tarjeta de Crédito',
+      debit: 'Tarjeta de Débito'
+    };
+    return labels[method as keyof typeof labels] || method;
+  };
 
   // Datos KPI usando datos reales
   const kpiData = realKpiData ? [
@@ -115,244 +172,279 @@ export const InteractiveDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Filtros Globales */}
-      <DashboardFilters filters={filters} onFiltersChange={setFilters} />
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiData.map((kpi, index) => (
-          <KPICard
-            key={index}
-            title={kpi.title}
-            value={kpi.value}
-            change={kpi.change}
-            trend={kpi.trend}
-            icon={kpi.icon}
-          />
-        ))}
-      </div>
-
-      {/* Gráficos Principales */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <SalesChart data={salesData} loading={loading} />
-        </div>
-        <div className="space-y-6">
-          <SalesSummaryCard
-            kpiData={realKpiData}
-            paymentData={paymentData}
-            loading={loading}
-          />
-          <div className="lg:hidden">
-            <PaymentMethodsChart data={paymentData} loading={loading} />
-          </div>
-        </div>
-      </div>
-
-      {/* Gráfico de métodos de pago para desktop */}
-      <div className="hidden lg:block">
-        <PaymentMethodsChart data={paymentData} loading={loading} />
-      </div>
-
-      {/* Tabs para análisis específicos */}
-      <Tabs defaultValue="products" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="products">Productos</TabsTrigger>
-          <TabsTrigger value="employees">Empleados</TabsTrigger>
-          <TabsTrigger value="analytics">Análisis</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="products" className="space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            <TopProductsChart data={productData} loading={loading} />
-
-            {/* Estadísticas de productos */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Categoría Top</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-lg font-semibold">
-                    {productData.length > 0 ? productData[0].category === 'bebidas_alcoholicas' ? 'Bebidas Alcohólicas' :
-                     productData[0].category === 'bebidas_sin_alcohol' ? 'Bebidas Sin Alcohol' :
-                     productData[0].category === 'comida' ? 'Comida' :
-                     productData[0].category : '---'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Producto más vendido</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Producto Top</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-lg font-semibold">
-                    {productData.length > 0 ? productData[0].name : '---'}
-                  </div>
-                  <div className="text-xs text-green-600">
-                    {productData.length > 0 ? `$${productData[0].total_revenue.toLocaleString()}` : '---'}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Stock Crítico</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-lg font-semibold">
-                    {realKpiData?.lowStockProducts || 0} productos
-                  </div>
-                  <div className="text-xs text-orange-600">Requieren reposición</div>
-                </CardContent>
-              </Card>
+      {/* Filtro de Fechas */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Filtro de Fechas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="flex-1">
+              <Label htmlFor="start-date" className="text-sm font-medium">Fecha Inicio</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex-1">
+              <Label htmlFor="end-date" className="text-sm font-medium">Fecha Fin</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const today = new Date();
+                  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                  setStartDate(weekAgo.toISOString().split('T')[0]);
+                  setEndDate(today.toISOString().split('T')[0]);
+                }}
+              >
+                Última semana
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const today = new Date();
+                  const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                  setStartDate(monthAgo.toISOString().split('T')[0]);
+                  setEndDate(today.toISOString().split('T')[0]);
+                }}
+              >
+                Último mes
+              </Button>
             </div>
           </div>
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="employees" className="space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            <EmployeePerformanceChart data={employeeData} loading={loading} />
-
-            {/* Estadísticas de empleados */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Top Performer</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-lg font-semibold">
-                    {employeeData.length > 0 ? employeeData[0].name : '---'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {employeeData.length > 0 ? `${employeeData[0].category} - $${employeeData[0].total_amount.toLocaleString()}` : '---'}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Venta Promedio</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-lg font-semibold">
-                    {employeeData.length > 0 ? `$${Math.round(employeeData.reduce((sum, emp) => sum + emp.avg_sale, 0) / employeeData.length).toLocaleString()}` : '---'}
-                  </div>
-                  <div className="text-xs text-green-600">Promedio general</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Empleados Activos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-lg font-semibold">
-                    {employeeData.length} de {realKpiData?.activeEmployees || 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Con ventas este período</div>
-                </CardContent>
-              </Card>
+      {/* KPIs Principales */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Vendido</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  ${realTimeKPIs.totalAmount.toLocaleString()}
+                </p>
+              </div>
+              <DollarSign className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
-          </div>
-        </TabsContent>
+            <div className="mt-2 text-xs text-muted-foreground">
+              {realKpiData && realKpiData.salesGrowth !== 0 && (
+                <span className={realKpiData.salesGrowth > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                  {realKpiData.salesGrowth > 0 ? '+' : ''}{realKpiData.salesGrowth.toFixed(1)}% vs período anterior
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Análisis de tendencias */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Tendencias Identificadas</CardTitle>
-                <CardDescription>Insights automáticos del período</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Badge variant="default" className="mt-1">
-                    Tendencia
-                  </Badge>
-                  <div>
-                    <p className="text-sm font-medium">Aumento en ventas nocturnas</p>
-                    <p className="text-xs text-muted-foreground">
-                      Las ventas después de las 22:00 aumentaron un 25%
-                    </p>
-                  </div>
-                </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Cantidad de Ventas</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {realTimeKPIs.totalSales}
+                </p>
+              </div>
+              <ShoppingCart className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Transacciones completadas
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="flex items-start gap-3">
-                  <Badge variant="secondary" className="mt-1">
-                    Producto
-                  </Badge>
-                  <div>
-                    <p className="text-sm font-medium">Fernet en alta demanda</p>
-                    <p className="text-xs text-muted-foreground">
-                      45% más vendido que el mes anterior
-                    </p>
-                  </div>
-                </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Ticket Promedio</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  ${realTimeKPIs.averageTicket.toLocaleString()}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Promedio por transacción
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="flex items-start gap-3">
-                  <Badge variant="outline" className="mt-1">
-                    Personal
-                  </Badge>
-                  <div>
-                    <p className="text-sm font-medium">Bartenders con mejor rendimiento</p>
-                    <p className="text-xs text-muted-foreground">
-                      Promedio de venta 85% superior a otros roles
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Empleados Activos</p>
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  {realTimeKPIs.activeEmployees}
+                </p>
+              </div>
+              <Users className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Con ventas en el período
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            {/* Recomendaciones */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Recomendaciones</CardTitle>
-                <CardDescription>Acciones sugeridas para optimizar</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Badge variant="destructive" className="mt-1">
-                    Urgente
-                  </Badge>
-                  <div>
-                    <p className="text-sm font-medium">Reponer stock de Fernet</p>
-                    <p className="text-xs text-muted-foreground">
-                      Solo quedan 5 unidades disponibles
-                    </p>
-                  </div>
+      {/* Gráficos en Layout Compacto */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Ventas por Horas - Más Pequeño */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Ventas por Horas</CardTitle>
+            <CardDescription>Distribución de ventas durante el día</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full">
+              {loading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
+              ) : salesData && salesData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={salesData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="hour"
+                      tick={{ fontSize: 12 }}
+                      axisLine={{ stroke: '#e0e0e0' }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      axisLine={{ stroke: '#e0e0e0' }}
+                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Ventas']}
+                      labelFormatter={(label) => `Hora: ${label}`}
+                    />
+                    <Bar dataKey="total_amount" fill="#8884d8" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  No hay datos disponibles
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="flex items-start gap-3">
-                  <Badge variant="secondary" className="mt-1">
-                    Oportunidad
-                  </Badge>
-                  <div>
-                    <p className="text-sm font-medium">Promoción de bebidas sin alcohol</p>
-                    <p className="text-xs text-muted-foreground">
-                      Baja rotación en esta categoría
-                    </p>
-                  </div>
+        {/* Métodos de Pago */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Métodos de Pago</CardTitle>
+            <CardDescription>Distribución por método de pago</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full">
+              {loading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
+              ) : paymentData && paymentData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={paymentData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="amount"
+                    >
+                      {paymentData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getPaymentMethodColor(entry.method)} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Total']}
+                      labelFormatter={(label) => getPaymentMethodLabel(label)}
+                    />
+                    <Legend
+                      formatter={(value) => getPaymentMethodLabel(value)}
+                      wrapperStyle={{ fontSize: '12px' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  No hay datos disponibles
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-                <div className="flex items-start gap-3">
-                  <Badge variant="outline" className="mt-1">
-                    Mejora
-                  </Badge>
-                  <div>
-                    <p className="text-sm font-medium">Capacitar empleados en upselling</p>
-                    <p className="text-xs text-muted-foreground">
-                      Potencial de aumentar ticket promedio
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+      {/* Productos y Empleados */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Top Productos</CardTitle>
+            <CardDescription>Productos más vendidos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full h-64 overflow-hidden">
+              <TopProductsChart data={productData} loading={loading} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Rendimiento Empleados</CardTitle>
+            <CardDescription>Ventas por empleado</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full h-64 overflow-hidden">
+              <EmployeePerformanceChart data={employeeData} loading={loading} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Alerta de Stock Bajo */}
+      {realKpiData && realKpiData.lowStockProducts > 0 && (
+        <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Package className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <div>
+                <p className="font-medium text-red-800 dark:text-red-300">
+                  ⚠️ Productos con Stock Bajo
+                </p>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {realKpiData.lowStockProducts} productos requieren reposición urgente
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 };
