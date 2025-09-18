@@ -15,6 +15,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
     admin: null,
+    employee: null,
+    userRole: 'none',
     isLoading: true,
     isAuthenticated: false,
   });
@@ -25,6 +27,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setState({
         user: null,
         admin: null,
+        employee: null,
+        userRole: 'none',
         isLoading: false,
         isAuthenticated: false,
       });
@@ -32,21 +36,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const admin = await authService.getCurrentAdmin();
-      
+      const { admin, employee, userRole } = await authService.getCurrentUserData();
+
+      console.log('AuthContext updateAuthState:', {
+        userId: user.id,
+        userEmail: user.email,
+        admin: admin ? { id: admin.user_id, status: admin.status, clubId: admin.club_id } : null,
+        employee: employee ? { id: employee.user_id, status: employee.status, category: employee.category } : null,
+        userRole,
+        isAuthenticated: userRole !== 'none'
+      });
+
       setState({
         user,
         admin,
+        employee,
+        userRole,
         isLoading: false,
-        isAuthenticated: true,
+        isAuthenticated: userRole !== 'none',
       });
     } catch (error) {
-      console.error('Error fetching admin data:', error);
+      console.error('Error fetching user data:', error);
       setState({
         user,
         admin: null,
+        employee: null,
+        userRole: 'none',
         isLoading: false,
-        isAuthenticated: false, // No es un admin válido
+        isAuthenticated: false,
       });
     }
   };
@@ -94,15 +111,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Función para refrescar datos del admin
-  const refreshAdmin = async () => {
+  // Función para refrescar datos del usuario (admin o empleado)
+  const refreshUserData = async () => {
     if (!state.user) return;
-    
+
     try {
-      const admin = await authService.getCurrentAdmin();
-      setState(prev => ({ ...prev, admin }));
+      const { admin, employee, userRole } = await authService.getCurrentUserData();
+      setState(prev => ({
+        ...prev,
+        admin,
+        employee,
+        userRole,
+        isAuthenticated: userRole !== 'none'
+      }));
     } catch (error) {
-      console.error('Error refreshing admin data:', error);
+      console.error('Error refreshing user data:', error);
     }
   };
 
@@ -110,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     ...state,
     login,
     logout,
-    refreshAdmin,
+    refreshUserData,
   };
 
   return (

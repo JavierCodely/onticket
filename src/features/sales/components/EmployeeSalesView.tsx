@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, ShoppingCart, TrendingUp, DollarSign, Users, Calendar, Eye, Edit } from 'lucide-react';
+import { Plus, Search, ShoppingCart, Calendar, Eye } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -19,28 +19,20 @@ import {
   TableRow,
 } from '@/shared/components/ui/table';
 import { Badge } from '@/shared/components/ui/badge';
-import { useSales } from '../hooks/useSales';
-import { AddSaleModal } from './AddSaleModal';
-import { EditSaleModal } from './EditSaleModal';
-import { SaleDetailsModal } from './SaleDetailsModal';
+import { useEmployeeSales } from '../hooks/useEmployeeSales';
+import { EmployeeAddSaleModal } from './EmployeeAddSaleModal';
+import { EmployeeSaleDetailsModal } from './EmployeeSaleDetailsModal';
 import { PAYMENT_METHOD_CONFIG, SALE_STATUS_CONFIG, type PaymentMethod, type SaleStatus, type SaleWithDetails } from '../types';
 
-export const SalesView: React.FC = () => {
+export const EmployeeSalesView: React.FC = () => {
   const {
     sales,
     loading,
     error,
-    employees,
     createSale,
-    updateSale,
-    addSaleItem,
-    updateSaleItem,
-    removeSaleItem,
-    refundSale,
     filterSales,
-    getSalesStatsFromData,
     clearError
-  } = useSales();
+  } = useEmployeeSales();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | 'all'>('all');
@@ -49,7 +41,6 @@ export const SalesView: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SaleWithDetails | null>(null);
 
@@ -61,74 +52,6 @@ export const SalesView: React.FC = () => {
     startDate || undefined,
     endDate || undefined
   );
-
-  // Calcular estadísticas basadas en las ventas filtradas
-  const calculateFilteredStats = () => {
-    const completedSales = filteredSales.filter(sale => sale.status === 'completed');
-
-    const totalSales = completedSales.length;
-    const totalAmount = completedSales.reduce((sum, sale) => sum + sale.total_amount, 0);
-    const avgSaleAmount = totalSales > 0 ? totalAmount / totalSales : 0;
-
-    // Payment methods breakdown
-    const paymentMethods = completedSales.reduce((acc, sale) => {
-      const method = sale.payment_method;
-      if (!acc[method]) {
-        acc[method] = { count: 0, amount: 0 };
-      }
-      acc[method].count += 1;
-      acc[method].amount += sale.total_amount;
-      return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
-
-    // Employees breakdown
-    const employees = completedSales.reduce((acc, sale) => {
-      const employeeName = sale.employee_name;
-      if (!acc[employeeName]) {
-        acc[employeeName] = { count: 0, amount: 0 };
-      }
-      acc[employeeName].count += 1;
-      acc[employeeName].amount += sale.total_amount;
-      return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
-
-    return {
-      totalSales,
-      totalAmount,
-      avgSaleAmount,
-      paymentMethods,
-      employees
-    };
-  };
-
-  const stats = calculateFilteredStats();
-
-  // Determinar el texto del período para las etiquetas
-  const getPeriodLabel = () => {
-    if (startDate && endDate) {
-      if (startDate === endDate) {
-        const date = new Date(startDate);
-        const today = new Date().toISOString().split('T')[0];
-        if (startDate === today) {
-          return 'de Hoy';
-        }
-        return `del ${date.toLocaleDateString('es-AR')}`;
-      } else {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        return `del ${start.toLocaleDateString('es-AR')} al ${end.toLocaleDateString('es-AR')}`;
-      }
-    } else if (startDate) {
-      const date = new Date(startDate);
-      return `desde el ${date.toLocaleDateString('es-AR')}`;
-    } else if (endDate) {
-      const date = new Date(endDate);
-      return `hasta el ${date.toLocaleDateString('es-AR')}`;
-    }
-    return 'de Hoy'; // Por defecto
-  };
-
-  const periodLabel = getPeriodLabel();
 
   useEffect(() => {
     if (error) {
@@ -154,11 +77,6 @@ export const SalesView: React.FC = () => {
     setIsAddModalOpen(true);
   };
 
-  const handleEditSale = (sale: SaleWithDetails) => {
-    setSelectedSale(sale);
-    setIsEditModalOpen(true);
-  };
-
   const handleViewSale = (sale: SaleWithDetails) => {
     setSelectedSale(sale);
     setIsDetailsModalOpen(true);
@@ -170,15 +88,6 @@ export const SalesView: React.FC = () => {
       setIsAddModalOpen(false);
     } catch (error) {
       console.error('Error creating sale:', error);
-    }
-  };
-
-  const handleUpdateSale = async (saleId: string, data: any) => {
-    try {
-      await updateSale(saleId, data);
-      setIsEditModalOpen(false);
-    } catch (error) {
-      console.error('Error updating sale:', error);
     }
   };
 
@@ -222,56 +131,6 @@ export const SalesView: React.FC = () => {
         </Card>
       )}
 
-      {/* Header con estadísticas dinámicas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Ventas {periodLabel}</p>
-                <p className="text-2xl font-bold">{stats.totalSales}</p>
-              </div>
-              <ShoppingCart className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Vendido {periodLabel}</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.totalAmount)}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Venta Promedio {periodLabel}</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.avgSaleAmount)}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Empleados con Ventas {periodLabel}</p>
-                <p className="text-2xl font-bold">{Object.keys(stats.employees).length}</p>
-              </div>
-              <Users className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Controles y filtros */}
       <Card>
@@ -280,10 +139,10 @@ export const SalesView: React.FC = () => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
-                Gestión de Ventas
+                Sistema de Ventas - Bartender
               </CardTitle>
               <CardDescription>
-                Registra y administra las ventas del día
+                Registra ventas rápidamente. No puedes editar ventas existentes.
               </CardDescription>
             </div>
             <Button onClick={handleCreateSale}>
@@ -292,7 +151,7 @@ export const SalesView: React.FC = () => {
             </Button>
           </div>
 
-          {/* Barra de filtros */}
+          {/* Barra de filtros simplificada */}
           <div className="space-y-4 mt-4">
             {/* Primera fila de filtros */}
             <div className="flex flex-col sm:flex-row gap-4">
@@ -333,13 +192,6 @@ export const SalesView: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-
-              <Input
-                placeholder="Filtrar por empleado"
-                value={selectedEmployee}
-                onChange={(e) => setSelectedEmployee(e.target.value)}
-                className="w-full sm:w-48"
-              />
             </div>
 
             {/* Segunda fila - Filtros de fecha */}
@@ -358,7 +210,6 @@ export const SalesView: React.FC = () => {
                     onChange={(e) => {
                       const newStartDate = e.target.value;
                       setStartDate(newStartDate);
-                      // Auto-set end date to same date if end date is empty or earlier than start date
                       if (!endDate || (newStartDate && newStartDate > endDate)) {
                         setEndDate(newStartDate);
                       }
@@ -375,7 +226,6 @@ export const SalesView: React.FC = () => {
                   />
                 </div>
 
-                {/* Accesos rápidos y limpiar */}
                 <div className="flex gap-1 items-center flex-wrap">
                   <Button
                     variant="outline"
@@ -388,36 +238,6 @@ export const SalesView: React.FC = () => {
                     className="text-xs h-8"
                   >
                     Hoy
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const today = new Date();
-                      const weekStart = new Date(today);
-                      weekStart.setDate(today.getDate() - today.getDay());
-                      const weekEnd = new Date(today);
-                      weekEnd.setDate(today.getDate() + (6 - today.getDay()));
-                      setStartDate(weekStart.toISOString().split('T')[0]);
-                      setEndDate(weekEnd.toISOString().split('T')[0]);
-                    }}
-                    className="text-xs h-8"
-                  >
-                    Semana
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const today = new Date();
-                      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-                      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                      setStartDate(monthStart.toISOString().split('T')[0]);
-                      setEndDate(monthEnd.toISOString().split('T')[0]);
-                    }}
-                    className="text-xs h-8"
-                  >
-                    Mes
                   </Button>
                   {(startDate || endDate) && (
                     <Button
@@ -518,13 +338,6 @@ export const SalesView: React.FC = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditSale(sale)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -538,33 +351,16 @@ export const SalesView: React.FC = () => {
       </Card>
 
       {/* Modales */}
-      <AddSaleModal
+      <EmployeeAddSaleModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleSaveSale}
-        employees={employees}
       />
 
-      <EditSaleModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        sale={selectedSale}
-        onUpdateSale={handleUpdateSale}
-        onAddItem={addSaleItem}
-        onUpdateItem={updateSaleItem}
-        onRemoveItem={removeSaleItem}
-        onRefundSale={refundSale}
-        employees={employees}
-      />
-
-      <SaleDetailsModal
+      <EmployeeSaleDetailsModal
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
         sale={selectedSale}
-        onEdit={() => {
-          setIsDetailsModalOpen(false);
-          setIsEditModalOpen(true);
-        }}
       />
     </div>
   );

@@ -18,8 +18,8 @@ export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Ruta a la que redirigir después del login
-  const from = location.state?.from?.pathname || '/dashboard';
+  // Ruta a la que redirigir después del login (redirigir a raíz para que el RootRedirect maneje el rol)
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
