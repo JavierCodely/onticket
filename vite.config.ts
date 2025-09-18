@@ -10,6 +10,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@/lib/utils": path.resolve(__dirname, "./src/shared/utils/utils.ts"),
+      "@/components/ui": path.resolve(__dirname, "./src/shared/components/ui"),
     },
   },
 })

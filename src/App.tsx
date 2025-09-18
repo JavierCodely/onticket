@@ -2,6 +2,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/features/auth/services/AuthContext';
+import { ThemeProvider } from '@/shared/contexts/ThemeContext';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { Login } from '@/features/auth/components/Login';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -59,56 +60,58 @@ function App() {
   );
 
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Ruta raíz - redirige basado en autenticación y rol */}
-          <Route path="/" element={<RootRedirect />} />
+    <ThemeProvider>
+      <Router>
+        <AuthProvider>
+          <Routes>
+            {/* Ruta raíz - redirige basado en autenticación y rol */}
+            <Route path="/" element={<RootRedirect />} />
 
-          {/* Ruta de login */}
-          <Route path="/login" element={<Login />} />
+            {/* Ruta de login */}
+            <Route path="/login" element={<Login />} />
 
-          {/* Rutas para administradores */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Suspense fallback={LoadingSpinner}>
-                  <Dashboard />
-                </Suspense>
-              </ProtectedRoute>
-            }
-          />
+            {/* Rutas para administradores */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Suspense fallback={LoadingSpinner}>
+                    <Dashboard />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Rutas para empleados */}
-          <Route
-            path="/employee"
-            element={
-              <ProtectedRoute allowedRoles={['employee']}>
-                <Suspense fallback={LoadingSpinner}>
-                  <EmployeeDashboard />
-                </Suspense>
-              </ProtectedRoute>
-            }
-          />
+            {/* Rutas para empleados */}
+            <Route
+              path="/employee"
+              element={
+                <ProtectedRoute allowedRoles={['employee']}>
+                  <Suspense fallback={LoadingSpinner}>
+                    <EmployeeDashboard />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Ruta legacy para compatibilidad */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Suspense fallback={LoadingSpinner}>
-                  <Dashboard />
-                </Suspense>
-              </ProtectedRoute>
-            }
-          />
+            {/* Ruta legacy para compatibilidad */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Suspense fallback={LoadingSpinner}>
+                    <Dashboard />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Ruta catch-all - redirige a la raíz */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
-    </Router>
+            {/* Ruta catch-all - redirige a la raíz */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
   );
 }
 

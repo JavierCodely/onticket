@@ -535,11 +535,11 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
 
                             <div>
                               <Label className="text-xs">Precio Unit.</Label>
-                              <div className="p-2 bg-gray-50 rounded border text-right">
-                                <p className="font-medium text-sm">
+                              <div className="p-2 bg-secondary rounded border text-right">
+                                <p className="font-medium text-sm text-white dark:text-white">
                                   ${item.unit_price.toFixed(2)}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-300 dark:text-gray-300">
                                   No editable
                                 </p>
                               </div>
@@ -551,7 +551,7 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
                                 ${(editData.quantity * item.unit_price).toFixed(2)}
                               </p>
                               {hasChanges && (
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-300 dark:text-gray-300">
                                   Orig: ${(item.quantity * item.unit_price).toFixed(2)}
                                 </p>
                               )}

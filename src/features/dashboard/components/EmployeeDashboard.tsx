@@ -17,30 +17,30 @@ export const EmployeeDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-background shadow-sm border-b">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <ShoppingCart className="h-5 w-5 text-white" />
+              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+                <ShoppingCart className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">OnTicket - Sistema de Ventas</h1>
-                <p className="text-sm text-gray-600">Panel de Empleado</p>
+                <h1 className="text-xl font-semibold text-foreground">OnTicket - Sistema de Ventas</h1>
+                <p className="text-sm text-muted-foreground">Panel de Empleado</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               {/* Información del empleado */}
-              <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg">
-                <User className="h-5 w-5 text-gray-600" />
+              <div className="flex items-center gap-3 px-3 py-2 bg-secondary rounded-lg">
+                <User className="h-5 w-5 text-muted-foreground" />
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">
                     {employee?.full_name || 'Empleado'}
                   </p>
-                  <p className="text-xs text-gray-600 capitalize">
+                  <p className="text-xs text-muted-foreground capitalize">
                     {employee?.category || 'N/A'}
                   </p>
                 </div>
@@ -78,35 +78,35 @@ export const EmployeeDashboard: React.FC = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Nombre</p>
-                  <p className="text-lg">{employee?.full_name || 'N/A'}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Nombre</p>
+                  <p className="text-lg text-foreground">{employee?.full_name || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Categoría</p>
-                  <p className="text-lg capitalize">{employee?.category || 'N/A'}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Categoría</p>
+                  <p className="text-lg text-foreground capitalize">{employee?.category || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Estado</p>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <p className="text-sm font-medium text-muted-foreground">Estado</p>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
                     {employee?.status === 'active' ? 'Activo' : 'Inactivo'}
                   </span>
                 </div>
                 {employee?.phone && (
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Teléfono</p>
-                    <p className="text-lg">{employee.phone}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Teléfono</p>
+                    <p className="text-lg text-foreground">{employee.phone}</p>
                   </div>
                 )}
                 {employee?.employee_number && (
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Número de Empleado</p>
-                    <p className="text-lg">{employee.employee_number}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Número de Empleado</p>
+                    <p className="text-lg text-foreground">{employee.employee_number}</p>
                   </div>
                 )}
                 {employee?.hire_date && (
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Fecha de Ingreso</p>
-                    <p className="text-lg">
+                    <p className="text-sm font-medium text-muted-foreground">Fecha de Ingreso</p>
+                    <p className="text-lg text-foreground">
                       {new Date(employee.hire_date).toLocaleDateString('es-AR')}
                     </p>
                   </div>
@@ -124,7 +124,7 @@ export const EmployeeDashboard: React.FC = () => {
               <CardTitle>Información Importante</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <p>• Puedes crear nuevas ventas usando únicamente tu usuario como empleado.</p>
                 <p>• No puedes editar ventas existentes - solo los administradores pueden hacerlo.</p>
                 <p>• Puedes ver todas las ventas del club para coordinarte con otros empleados.</p>

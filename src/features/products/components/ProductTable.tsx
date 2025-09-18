@@ -69,15 +69,15 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             const unitConfig = PRODUCT_UNIT_CONFIG[product.unit];
 
             return (
-              <TableRow key={product.id} className={product.is_low_stock ? 'bg-red-50' : ''}>
+              <TableRow key={product.id} className={product.is_low_stock ? 'bg-red-50 dark:bg-red-900/20' : ''}>
                 <TableCell>
                   <div>
-                    <p className="font-medium">{product.name}</p>
+                    <p className="font-medium text-foreground">{product.name}</p>
                     {product.brand && (
-                      <p className="text-sm text-gray-500">{product.brand}</p>
+                      <p className="text-sm text-muted-foreground">{product.brand}</p>
                     )}
                     {product.sku && (
-                      <p className="text-xs text-gray-400">SKU: {product.sku}</p>
+                      <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
                     )}
                   </div>
                 </TableCell>
@@ -89,25 +89,25 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     {categoryConfig.label}
                   </Badge>
                 </TableCell>
-                <TableCell>{formatPrice(product.cost_price)}</TableCell>
-                <TableCell className="text-green-600 font-medium">
+                <TableCell className="text-foreground">{formatPrice(product.cost_price)}</TableCell>
+                <TableCell className="text-green-400 dark:text-green-300 font-medium">
                   {formatPrice(product.sale_price)}
                 </TableCell>
                 <TableCell>
-                  <span className="text-green-600 font-medium">
+                  <span className="text-green-400 dark:text-green-300 font-medium">
                     {product.profit_margin?.toFixed(1)}%
                   </span>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <span className={product.is_low_stock ? 'text-red-600 font-medium' : ''}>
+                    <span className={product.is_low_stock ? 'text-red-600 dark:text-red-400 font-medium' : 'text-foreground'}>
                       {product.available_stock} {unitConfig.short}
                     </span>
                     {product.is_low_stock && (
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Min: {product.min_stock} {unitConfig.short}
                   </p>
                 </TableCell>

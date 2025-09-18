@@ -88,46 +88,46 @@ export const PAYMENT_METHOD_CONFIG = {
   cash: {
     label: 'Efectivo',
     icon: 'Banknote',
-    color: 'text-green-600',
-    bgColor: 'bg-green-50'
+    color: 'text-green-600 dark:text-green-400',
+    bgColor: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
   },
   transfer: {
     label: 'Transferencia',
     icon: 'ArrowLeftRight',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50'
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700'
   },
   credit: {
     label: 'Tarjeta de Crédito',
     icon: 'CreditCard',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50'
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700'
   },
   debit: {
     label: 'Tarjeta de Débito',
     icon: 'CreditCard',
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50'
+    color: 'text-orange-600 dark:text-orange-400',
+    bgColor: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700'
   }
 } as const;
 
 export const SALE_STATUS_CONFIG = {
   completed: {
     label: 'Completada',
-    color: 'text-green-700',
-    bgColor: 'bg-green-100',
+    color: 'text-green-700 dark:text-green-400',
+    bgColor: 'bg-green-100 dark:bg-green-900/20',
     badgeVariant: 'default'
   },
   cancelled: {
     label: 'Cancelada',
-    color: 'text-red-700',
-    bgColor: 'bg-red-100',
+    color: 'text-red-700 dark:text-red-400',
+    bgColor: 'bg-red-100 dark:bg-red-900/20',
     badgeVariant: 'destructive'
   },
   refunded: {
     label: 'Reembolsada',
-    color: 'text-yellow-700',
-    bgColor: 'bg-yellow-100',
+    color: 'text-yellow-700 dark:text-yellow-400',
+    bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
     badgeVariant: 'secondary'
   }
 } as const;

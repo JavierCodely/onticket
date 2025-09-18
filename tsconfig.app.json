@@ -11,6 +11,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@/lib/utils": [
+        "./src/shared/utils/utils.ts"
+      ],
+      "@/components/ui/*": [
+        "./src/shared/components/ui/*"
       ]
     },
     /* Bundler mode */

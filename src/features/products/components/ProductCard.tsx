@@ -115,10 +115,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex-1">
               <h3 className="font-semibold text-lg leading-tight">{product.name}</h3>
               {product.brand && (
-                <p className="text-sm text-gray-600 mt-1">{product.brand}</p>
+                <p className="text-sm text-muted-foreground mt-1">{product.brand}</p>
               )}
               {product.sku && (
-                <p className="text-xs text-gray-500 mt-1">SKU: {product.sku}</p>
+                <p className="text-xs text-muted-foreground mt-1">SKU: {product.sku}</p>
               )}
             </div>
             <div className="flex flex-col items-end gap-1">
@@ -139,37 +139,37 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Precios y margen */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs text-gray-500">Precio Costo</Label>
+              <Label className="text-xs text-muted-foreground">Precio Costo</Label>
               <p className="font-medium">{formatPrice(product.cost_price)}</p>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Precio Venta</Label>
-              <p className="font-medium text-green-600">{formatPrice(product.sale_price)}</p>
+              <Label className="text-xs text-muted-foreground">Precio Venta</Label>
+              <p className="font-medium text-green-400 dark:text-green-300">{formatPrice(product.sale_price)}</p>
             </div>
           </div>
 
           {/* Ganancia y margen */}
-          <div className="bg-gray-50 p-3 rounded-lg">
+          <div className="bg-secondary p-3 rounded-lg">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Ganancia:</span>
-              <span className="font-medium text-green-600">{formatPrice(profitAmount)}</span>
+              <span className="text-muted-foreground">Ganancia:</span>
+              <span className="font-medium text-green-400 dark:text-green-300">{formatPrice(profitAmount)}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Margen:</span>
-              <span className="font-medium text-green-600">
+              <span className="text-muted-foreground">Margen:</span>
+              <span className="font-medium text-green-400 dark:text-green-300">
                 {product.profit_margin?.toFixed(1)}%
               </span>
             </div>
           </div>
 
           {/* Stock */}
-          <div className={`p-3 rounded-lg ${product.is_low_stock ? 'bg-red-50 border border-red-200' : 'bg-blue-50'}`}>
+          <div className={`p-3 rounded-lg ${product.is_low_stock ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700' : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Package className={`h-4 w-4 ${product.is_low_stock ? 'text-red-600' : 'text-blue-600'}`} />
-                <span className="text-sm font-medium">Stock</span>
+                <Package className={`h-4 w-4 ${product.is_low_stock ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                <span className="text-sm font-medium text-foreground">Stock</span>
                 {product.is_low_stock && (
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
                 )}
               </div>
               <Button
@@ -182,10 +182,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </Button>
             </div>
             <div className="mt-2">
-              <p className={`text-lg font-bold ${product.is_low_stock ? 'text-red-600' : 'text-blue-600'}`}>
+              <p className={`text-lg font-bold ${product.is_low_stock ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
                 {product.available_stock} {unitConfig.short}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 Mínimo: {product.min_stock} {unitConfig.short}
               </p>
             </div>
@@ -193,7 +193,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Descripción */}
           {product.description && (
-            <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
           )}
         </CardContent>
 
@@ -256,7 +256,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
-                <span className="text-sm text-gray-500">{unitConfig.short}</span>
+                <span className="text-sm text-muted-foreground">{unitConfig.short}</span>
               </div>
             </div>
 
@@ -272,16 +272,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 placeholder="Cantidad agregada al inventario"
                 min="0"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Si agregaste stock, ingresa la cantidad para registrar la reposición
               </p>
             </div>
 
-            <div className="bg-gray-50 p-3 rounded-lg text-sm">
+            <div className="bg-secondary p-3 rounded-lg text-sm">
               <p><strong>Stock anterior:</strong> {product.current_stock} {unitConfig.short}</p>
               <p><strong>Nuevo stock:</strong> {stockQuantity} {unitConfig.short}</p>
               {restockQuantity > 0 && (
-                <p className="text-green-600">
+                <p className="text-green-400 dark:text-green-300">
                   <strong>Reposición:</strong> +{restockQuantity} {unitConfig.short}
                 </p>
               )}

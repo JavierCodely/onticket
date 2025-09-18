@@ -35,7 +35,7 @@ export const Dashboard: React.FC = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50/50">
+      <div className="min-h-screen flex w-full bg-background">
         <DashboardSidebar
           activeTab={activeTab}
           onTabChange={setActiveTab}
