@@ -288,7 +288,14 @@ export const SalesView: React.FC = () => {
                     type="date"
                     placeholder="Fecha desde"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => {
+                      const newStartDate = e.target.value;
+                      setStartDate(newStartDate);
+                      // Auto-set end date to same date if end date is empty or earlier than start date
+                      if (!endDate || (newStartDate && newStartDate > endDate)) {
+                        setEndDate(newStartDate);
+                      }
+                    }}
                     className="w-full sm:w-40"
                   />
                   <span className="text-gray-400 text-sm whitespace-nowrap">hasta</span>
