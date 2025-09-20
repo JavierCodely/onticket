@@ -167,10 +167,10 @@ export const useSales = () => {
       const matchesStatus = !status || sale.status === status;
       const matchesEmployee = !employeeName || sale.employee_name.toLowerCase().includes(employeeName.toLowerCase());
 
-      // Filtro por fechas
-      const saleDate = new Date(sale.sale_date);
-      const matchesStartDate = !startDate || saleDate >= new Date(startDate + 'T00:00:00');
-      const matchesEndDate = !endDate || saleDate <= new Date(endDate + 'T23:59:59');
+      // Filtro por fechas - usar solo la parte de fecha sin hora para comparación
+      const saleDateStr = new Date(sale.sale_date).toISOString().split('T')[0];
+      const matchesStartDate = !startDate || saleDateStr >= startDate;
+      const matchesEndDate = !endDate || saleDateStr <= endDate;
 
       return matchesSearch && matchesPaymentMethod && matchesStatus && matchesEmployee && matchesStartDate && matchesEndDate;
     });

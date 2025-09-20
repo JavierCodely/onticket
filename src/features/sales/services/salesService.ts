@@ -15,11 +15,11 @@ export class SalesService {
         .order('sale_date', { ascending: false });
 
       if (startDate) {
-        query = query.gte('sale_date', startDate);
+        query = query.gte('sale_date', startDate + 'T00:00:00');
       }
 
       if (endDate) {
-        query = query.lte('sale_date', endDate);
+        query = query.lte('sale_date', endDate + 'T23:59:59');
       }
 
       const { data, error } = await query;

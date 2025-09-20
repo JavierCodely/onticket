@@ -63,6 +63,7 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
   const [editingItems, setEditingItems] = useState<Record<string, { quantity: number; unit_price: number }>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedEmployeeRole, setSelectedEmployeeRole] = useState<string>('');
 
   const availableProducts = products.filter(product =>
     product.status === 'active' &&
@@ -70,6 +71,12 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
     !sale?.items.some(item => item.product_id === product.id)
   );
+
+  // Determinar si es venta de admin
+  const isAdminSale = selectedEmployeeRole === 'admin' || sale?.employee_category === 'admin';
+  const getPriceForProduct = (product: any) => {
+    return isAdminSale ? product.cost_price : product.sale_price;
+  };
 
   useEffect(() => {
     if (sale) {
@@ -83,6 +90,9 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
         refund_reason: sale.refund_reason || ''
       });
 
+      // Set employee role
+      setSelectedEmployeeRole(sale.employee_category || '');
+
       // Initialize editing state for existing items
       const editingState: Record<string, { quantity: number; unit_price: number }> = {};
       sale.items.forEach(item => {
@@ -93,7 +103,7 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
       });
       setEditingItems(editingState);
     }
-  }, [sale?.id, sale?.items, sale?.employee_name, sale?.payment_method, sale?.discount_amount, sale?.status]);
+  }, [sale?.id, sale?.items, sale?.employee_name, sale?.payment_method, sale?.discount_amount, sale?.status, sale?.employee_category]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -104,6 +114,8 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
 
   const handleEmployeeChange = (userId: string) => {
     const employee = employees.find(emp => emp.user_id === userId);
+    const role = employee?.category || '';
+    setSelectedEmployeeRole(role);
     setFormData(prev => ({
       ...prev,
       employee_user_id: userId,
@@ -115,7 +127,9 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
     if (!sale) return;
 
     try {
-      await onAddItem(sale.id, productId, 1);
+      const product = products.find(p => p.id === productId);
+      const price = product ? getPriceForProduct(product) : undefined;
+      await onAddItem(sale.id, productId, 1, price);
       setSearchTerm('');
     } catch (error) {
       console.error('Error adding product:', error);
@@ -284,6 +298,20 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
           {/* Información de la venta */}
           <div className="space-y-4">
+            {/* Mensaje informativo para ventas de admin */}
+            {isAdminSale && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-blue-700 font-medium text-sm">
+                    Venta de Administrador
+                  </span>
+                </div>
+                <p className="text-blue-600 text-xs mt-1">
+                  Las ventas de admin se realizan con precios de compra
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Empleado que realizó la venta</Label>
               <Select value={formData.employee_user_id} onValueChange={handleEmployeeChange}>
@@ -448,7 +476,10 @@ export const EditSaleModal: React.FC<EditSaleModalProps> = ({
                       <div>
                         <p className="font-medium text-sm">{product.name}</p>
                         <p className="text-xs text-gray-500">
-                          Stock: {product.available_stock} | ${product.sale_price}
+                          Stock: {product.available_stock} | ${getPriceForProduct(product)}
+                          {isAdminSale && (
+                            <span className="text-blue-600 font-medium"> (Precio Admin)</span>
+                          )}
                         </p>
                       </div>
                       <Button size="sm" variant="outline">

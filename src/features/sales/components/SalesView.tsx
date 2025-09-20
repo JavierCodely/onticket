@@ -40,7 +40,8 @@ export const SalesView: React.FC = () => {
     filterSales,
     getSalesStatsFromData,
     clearError,
-    loadTodaySales
+    loadTodaySales,
+    loadSales
   } = useSales();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -141,6 +142,28 @@ export const SalesView: React.FC = () => {
     }
   }, [error, clearError]);
 
+  // Cargar ventas cuando cambien los filtros de fecha
+  useEffect(() => {
+    const loadFilteredSales = async () => {
+      if (startDate || endDate) {
+        try {
+          await loadSales(startDate || undefined, endDate || undefined);
+        } catch (error) {
+          console.error('Error loading filtered sales:', error);
+        }
+      } else {
+        // Si no hay filtros de fecha, cargar ventas del día actual
+        try {
+          await loadTodaySales();
+        } catch (error) {
+          console.error('Error loading today sales:', error);
+        }
+      }
+    };
+
+    loadFilteredSales();
+  }, [startDate, endDate, loadSales, loadTodaySales]);
+
   // Update selected sale when sales data changes
   useEffect(() => {
     if (selectedSale && sales.length > 0) {
@@ -187,7 +210,12 @@ export const SalesView: React.FC = () => {
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
-      await loadTodaySales();
+      // Si hay filtros de fecha, cargar con esos filtros, sino cargar del día
+      if (startDate || endDate) {
+        await loadSales(startDate || undefined, endDate || undefined);
+      } else {
+        await loadTodaySales();
+      }
     } catch (error) {
       console.error('Error refreshing sales:', error);
     } finally {
@@ -405,29 +433,12 @@ export const SalesView: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      setStartDate(today);
-                      setEndDate(today);
+                      setStartDate('');
+                      setEndDate('');
                     }}
                     className="text-xs h-8"
                   >
                     Hoy
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const today = new Date();
-                      const weekStart = new Date(today);
-                      weekStart.setDate(today.getDate() - today.getDay());
-                      const weekEnd = new Date(today);
-                      weekEnd.setDate(today.getDate() + (6 - today.getDay()));
-                      setStartDate(weekStart.toISOString().split('T')[0]);
-                      setEndDate(weekEnd.toISOString().split('T')[0]);
-                    }}
-                    className="text-xs h-8"
-                  >
-                    Semana
                   </Button>
                   <Button
                     variant="outline"

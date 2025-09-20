@@ -361,10 +361,11 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                               }
                             }}
                             onFocus={(e) => {
-                              e.target.select();
-                              setTimeout(() => e.target.select(), 0);
+                              const target = e.target as HTMLInputElement;
+                              target.select();
+                              setTimeout(() => target.select(), 0);
                             }}
-                            onClick={(e) => e.target.select()}
+                            onClick={(e) => (e.target as HTMLInputElement).select()}
                             onKeyDown={(e) => {
                               if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                                 e.preventDefault();

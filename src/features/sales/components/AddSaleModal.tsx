@@ -37,6 +37,7 @@ interface SaleItemForm extends CreateSaleItem {
   product_name: string;
   available_stock: number;
   product_sale_price: number;
+  product_cost_price: number;
 }
 
 export const AddSaleModal: React.FC<AddSaleModalProps> = ({
@@ -55,6 +56,8 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     notes: ''
   });
 
+  const [selectedEmployeeRole, setSelectedEmployeeRole] = useState<string>('');
+
   const [items, setItems] = useState<SaleItemForm[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +68,16 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const subtotal = items.reduce((sum, item) => sum + (item.unit_price || item.product_sale_price) * item.quantity, 0);
+  // Determinar si usar precio de costo (admin) o precio de venta (empleado)
+  const isAdminSale = selectedEmployeeRole === 'admin';
+  const getPriceForProduct = (product: any) => {
+    return isAdminSale ? product.cost_price : product.sale_price;
+  };
+
+  const subtotal = items.reduce((sum, item) => {
+    const price = isAdminSale && item.product_cost_price ? item.product_cost_price : (item.unit_price || item.product_sale_price);
+    return sum + price * item.quantity;
+  }, 0);
   const total = subtotal - formData.discount_amount;
 
   useEffect(() => {
@@ -79,16 +91,25 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       });
       setItems([]);
       setSearchTerm('');
+      setSelectedEmployeeRole('');
     }
   }, [isOpen]);
 
   const handleEmployeeChange = (userId: string) => {
     const employee = employees.find(emp => emp.user_id === userId);
+    const role = employee?.category || '';
+    setSelectedEmployeeRole(role);
     setFormData(prev => ({
       ...prev,
       employee_user_id: userId,
       employee_name: employee?.full_name || ''
     }));
+
+    // Actualizar precios de items existentes cuando cambia el rol
+    setItems(prevItems => prevItems.map(item => ({
+      ...item,
+      unit_price: role === 'admin' ? item.product_cost_price : item.product_sale_price
+    })));
   };
 
   const addProduct = (productId: string) => {
@@ -104,8 +125,9 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         product_id: productId,
         product_name: product.name,
         quantity: 1,
-        unit_price: product.sale_price,
+        unit_price: getPriceForProduct(product),
         product_sale_price: product.sale_price,
+        product_cost_price: product.cost_price,
         available_stock: product.available_stock
       };
       setItems(prev => [newItem, ...prev]);
@@ -199,6 +221,20 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           <div className="flex gap-4 flex-1 min-h-0">
             {/* Información de la venta */}
             <div className="w-80 flex flex-col space-y-3">
+              {/* Mensaje informativo para ventas de admin */}
+              {isAdminSale && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-blue-700 font-medium text-sm">
+                      Venta de Administrador
+                    </span>
+                  </div>
+                  <p className="text-blue-600 text-xs mt-1">
+                    Las ventas de admin se realizan con precios de compra
+                  </p>
+                </div>
+              )}
               {/* Empleado */}
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium">Empleado</Label>
@@ -220,11 +256,20 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                 <Input
                   placeholder="Nombre del empleado"
                   value={formData.employee_name}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    employee_name: e.target.value,
-                    employee_user_id: ''
-                  }))}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      employee_name: name,
+                      employee_user_id: ''
+                    }));
+                    setSelectedEmployeeRole('');
+                    // Actualizar precios de items existentes cuando se cambia manualmente
+                    setItems(prevItems => prevItems.map(item => ({
+                      ...item,
+                      unit_price: item.product_sale_price
+                    })));
+                  }}
                   className="h-9"
                 />
               </div>
@@ -331,7 +376,10 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                       <div>
                         <p className="font-medium text-sm">{product.name}</p>
                         <p className="text-xs text-gray-500">
-                          Stock: {product.available_stock} | ${product.sale_price}
+                          Stock: {product.available_stock} | ${getPriceForProduct(product)}
+                          {isAdminSale && (
+                            <span className="text-blue-600 font-medium"> (Precio Admin)</span>
+                          )}
                         </p>
                       </div>
                       <Button size="sm" variant="outline" className="h-8 w-8 p-0">
@@ -389,11 +437,12 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                             }
                           }}
                           onFocus={(e) => {
-                            e.target.select();
+                            const target = e.target as HTMLInputElement;
+                            target.select();
                             // Asegurar que se seleccione después de un breve delay
-                            setTimeout(() => e.target.select(), 0);
+                            setTimeout(() => target.select(), 0);
                           }}
-                          onClick={(e) => e.target.select()}
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
                           onKeyDown={(e) => {
                             // Permitir solo números, backspace, delete, tab, escape, enter
                             if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -416,6 +465,9 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                       {/* Precio unitario */}
                       <div className="text-xs text-muted-foreground w-12 text-right">
                         ${(item.unit_price || 0).toFixed(2)}
+                        {isAdminSale && item.product_cost_price && (
+                          <div className="text-xs text-blue-600">Admin</div>
+                        )}
                       </div>
 
                       {/* Total */}
