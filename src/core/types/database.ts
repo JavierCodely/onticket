@@ -112,4 +112,105 @@ export interface UpdateEmployeeData {
   notes?: string;
 }
 
+// Payment system types
+export type PaymentType =
+  | 'employee_payment'    // Pago a empleado
+  | 'dj_payment'         // Pago a DJ
+  | 'utility_payment'    // Servicios (agua, luz, etc.)
+  | 'supply_payment'     // Insumos/productos
+  | 'maintenance_payment' // Mantenimiento
+  | 'other_payment';     // Otros gastos
+
+export type PaymentMethodType =
+  | 'cash'         // Efectivo
+  | 'transfer'     // Transferencia bancaria
+  | 'check'        // Cheque
+  | 'other';       // Otro método
+
+export type PaymentStatus =
+  | 'pending'      // Pendiente
+  | 'completed'    // Completado
+  | 'cancelled';   // Cancelado
+
+export interface Payment {
+  id: string;
+  club_id: string;
+  payment_number: string;
+  payment_date: string;
+  payment_type: PaymentType;
+  category?: string;
+  recipient_type?: string;
+  recipient_id?: string;
+  recipient_name: string;
+  recipient_details?: any;
+  amount: number;
+  currency: string;
+  payment_method: PaymentMethodType;
+  description?: string;
+  notes?: string;
+  reference_number?: string;
+  period_start?: string;
+  period_end?: string;
+  status: PaymentStatus;
+  account_id?: string;
+  created_by: string;
+  updated_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentWithDetails extends Payment {
+  recipient_info?: {
+    type: string;
+    full_name?: string;
+    category?: string;
+    employee_number?: string;
+    name?: string;
+  };
+  account_info?: {
+    id: string;
+    name: string;
+    type: AccountType;
+  };
+  creator_info?: {
+    created_by_name: string;
+  };
+}
+
+export interface CreatePaymentData {
+  payment_type: PaymentType;
+  category?: string;
+  recipient_type?: string;
+  recipient_id?: string;
+  recipient_name: string;
+  amount: number;
+  payment_method: PaymentMethodType;
+  description?: string;
+  notes?: string;
+  reference_number?: string;
+  period_start?: string;
+  period_end?: string;
+  account_id?: string;
+}
+
+export interface PaymentStats {
+  total_payments: number;
+  total_amount: number;
+  total_cash: number;
+  total_transfer: number;
+  total_other: number;
+  by_type?: Record<PaymentType, { count: number; amount: number }>;
+  by_method?: Record<PaymentMethodType, { count: number; amount: number }>;
+  by_category?: Record<string, { count: number; amount: number }>;
+}
+
+export interface PaymentFilters {
+  start_date?: string;
+  end_date?: string;
+  payment_type?: PaymentType;
+  payment_method?: PaymentMethodType;
+  category?: string;
+  recipient_name?: string;
+}
+
 

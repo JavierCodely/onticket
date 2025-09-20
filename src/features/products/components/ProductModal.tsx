@@ -11,6 +11,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
+import { CurrencyInput } from '@/features/payments/components/CurrencyInput';
 import {
   Select,
   SelectContent,
@@ -303,36 +304,22 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cost_price">Precio de Costo *</Label>
-              <Input
-                id="cost_price"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={formData.cost_price || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData(prev => ({ ...prev, cost_price: value === '' ? 0 : parseNumberInput(value) }));
-                }}
-                className={errors.cost_price ? 'border-red-500' : ''}
+              <CurrencyInput
+                value={formData.cost_price}
+                onChange={(value) => setFormData(prev => ({ ...prev, cost_price: value }))}
+                placeholder="Ingresa el precio de costo"
+                error={!!errors.cost_price}
               />
               {errors.cost_price && <p className="text-sm text-red-500">{errors.cost_price}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="sale_price">Precio de Venta *</Label>
-              <Input
-                id="sale_price"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={formData.sale_price || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData(prev => ({ ...prev, sale_price: value === '' ? 0 : parseNumberInput(value) }));
-                }}
-                className={errors.sale_price ? 'border-red-500' : ''}
+              <CurrencyInput
+                value={formData.sale_price}
+                onChange={(value) => setFormData(prev => ({ ...prev, sale_price: value }))}
+                placeholder="Ingresa el precio de venta"
+                error={!!errors.sale_price}
               />
               {errors.sale_price && <p className="text-sm text-red-500">{errors.sale_price}</p>}
             </div>
@@ -345,7 +332,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 Margen de ganancia: {profitMargin.toFixed(1)}%
               </p>
               <p className="text-sm text-green-600">
-                Ganancia por unidad: ${(formData.sale_price - formData.cost_price).toFixed(2)}
+                Ganancia por unidad: {(formData.sale_price - formData.cost_price).toLocaleString('es-AR', {
+                  style: 'currency',
+                  currency: 'ARS'
+                })}
               </p>
             </div>
           )}

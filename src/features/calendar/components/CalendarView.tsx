@@ -72,8 +72,8 @@ export const CalendarView: React.FC = () => {
       <Card>
         <CardContent className="flex items-center justify-center h-96">
           <div className="text-center">
-            <CalendarIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500">Cargando calendario...</p>
+            <CalendarIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-muted-foreground">Cargando calendario...</p>
           </div>
         </CardContent>
       </Card>
@@ -85,8 +85,8 @@ export const CalendarView: React.FC = () => {
       <Card>
         <CardContent className="flex items-center justify-center h-96">
           <div className="text-center">
-            <p className="text-red-500 mb-2">Error al cargar el calendario</p>
-            <p className="text-sm text-gray-500">{error}</p>
+            <p className="text-destructive mb-2">Error al cargar el calendario</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         </CardContent>
       </Card>
@@ -153,7 +153,7 @@ export const CalendarView: React.FC = () => {
             {WEEKDAYS.map((day) => (
               <div
                 key={day}
-                className="p-2 text-center text-sm font-medium text-gray-500 border-b"
+                className="p-2 text-center text-sm font-medium text-muted-foreground border-b border-border"
               >
                 {day}
               </div>
@@ -183,13 +183,13 @@ export const CalendarView: React.FC = () => {
           </div>
 
           {/* Leyenda de prioridades */}
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm font-medium text-gray-700 mb-2">Prioridades:</p>
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-sm font-medium text-foreground mb-2">Prioridades:</p>
             <div className="flex gap-4 text-sm">
               {Object.entries(PRIORITY_CONFIG).map(([priority, config]) => (
                 <div key={priority} className="flex items-center gap-1">
                   <div className={`w-3 h-3 rounded-full ${config.color}`} />
-                  <span className="text-gray-600">{config.label}</span>
+                  <span className="text-muted-foreground">{config.label}</span>
                 </div>
               ))}
             </div>

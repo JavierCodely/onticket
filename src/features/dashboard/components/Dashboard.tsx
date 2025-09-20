@@ -5,6 +5,7 @@ import { EmployeesPage } from '@/features/employees/components/EmployeesPage';
 import { CalendarView } from '@/features/calendar';
 import { ProductsView } from '@/features/products';
 import { SalesView } from '@/features/sales';
+import { PaymentsPage } from '@/features/payments/components/PaymentsPage';
 import { DashboardSidebar } from './DashboardSidebar';
 import { DashboardHeader } from './DashboardHeader';
 import { OverviewPage } from './OverviewPage';
@@ -26,6 +27,8 @@ export const Dashboard: React.FC = () => {
         return <CalendarView />;
       case 'employees':
         return <EmployeesPage />;
+      case 'payments':
+        return <PaymentsPage />;
       case 'settings':
         return <SettingsPage />;
       default:

@@ -45,10 +45,10 @@ export const CalendarDay: React.FC<CalendarDayProps> = ({
   return (
     <div
       className={cn(
-        'min-h-[100px] p-1 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors',
-        !isCurrentMonth && 'text-gray-400 bg-gray-50',
-        isToday && 'bg-blue-50 border-blue-200',
-        isSelected && 'ring-2 ring-blue-500'
+        'min-h-[100px] p-1 border border-border cursor-pointer hover:bg-muted/50 transition-colors',
+        !isCurrentMonth && 'text-muted-foreground bg-muted/20',
+        isToday && 'bg-primary/10 border-primary/30',
+        isSelected && 'ring-2 ring-primary'
       )}
       onClick={onClick}
     >
@@ -57,7 +57,7 @@ export const CalendarDay: React.FC<CalendarDayProps> = ({
         <span
           className={cn(
             'text-sm font-medium',
-            isToday && 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs'
+            isToday && 'bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs'
           )}
         >
           {dayNumber}
@@ -87,7 +87,7 @@ export const CalendarDay: React.FC<CalendarDayProps> = ({
                   {event.is_completed ? (
                     <CheckCircle className="h-3 w-3 text-green-600" />
                   ) : (
-                    <Circle className="h-3 w-3 text-gray-400" />
+                    <Circle className="h-3 w-3 text-muted-foreground" />
                   )}
                 </button>
               )}
