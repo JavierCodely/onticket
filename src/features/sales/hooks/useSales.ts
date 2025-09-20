@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/core/config/supabase';
 import { salesService } from '../services/salesService';
 import type {
   SaleWithDetails,
@@ -14,6 +15,8 @@ export const useSales = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Array<{ user_id: string; full_name: string; category: string; }>>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const subscriptionRef = useRef<any>(null);
 
   const loadSales = useCallback(async (startDate?: string, endDate?: string) => {
     try {
@@ -214,10 +217,56 @@ export const useSales = () => {
     };
   }, [sales]);
 
+  // Función para configurar subscripción en tiempo real
+  const setupRealtimeSubscription = useCallback(() => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+    }
+
+    subscriptionRef.current = supabase
+      .channel('sales-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sales'
+        },
+        async (payload) => {
+          console.log('Sale change detected:', payload);
+
+          // Solo actualizar si no hay modales abiertos
+          if (!isModalOpen) {
+            try {
+              // Recargar las ventas sin mostrar loading
+              const data = await salesService.getTodaySales();
+              setSales(data);
+            } catch (err) {
+              console.error('Error updating sales after realtime change:', err);
+            }
+          }
+        }
+      )
+      .subscribe();
+  }, [isModalOpen]);
+
+  // Funciones para controlar estado de modales
+  const setModalOpen = useCallback((open: boolean) => {
+    setIsModalOpen(open);
+  }, []);
+
   useEffect(() => {
     loadTodaySales();
     loadEmployees();
-  }, [loadTodaySales, loadEmployees]);
+    setupRealtimeSubscription();
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+    };
+  }, [loadTodaySales, loadEmployees, setupRealtimeSubscription]);
 
   return {
     sales,
@@ -235,6 +284,7 @@ export const useSales = () => {
     getSalesStats,
     filterSales,
     getSalesStatsFromData,
-    clearError: () => setError(null)
+    clearError: () => setError(null),
+    setModalOpen
   };
 };

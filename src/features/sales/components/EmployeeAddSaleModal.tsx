@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
-import { Card, CardContent } from '@/shared/components/ui/card';
 import { useProducts } from '@/features/products/hooks/useProducts';
 import { parseNumberInput } from '@/shared/utils/numberUtils';
 import { PAYMENT_METHOD_CONFIG } from '../types';
@@ -178,21 +177,15 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
 
         <div className="flex-1 flex flex-col gap-4 p-3 min-h-0">
           {/* Información del empleado actual */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <UserCheck className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-blue-900">
-                    Empleado: {employee?.full_name || 'Usuario actual'}
-                  </p>
-                  <p className="text-sm text-blue-700">
-                    Categoría: {employee?.category || 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">
+                {employee?.full_name || 'Usuario actual'}
+                <span className="text-xs text-blue-700 ml-2">({employee?.category || 'N/A'})</span>
+              </span>
+            </div>
+          </div>
 
           {/* Contenido principal */}
           <div className="flex gap-4 flex-1 min-h-0">

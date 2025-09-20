@@ -41,7 +41,8 @@ export const SalesView: React.FC = () => {
     getSalesStatsFromData,
     clearError,
     loadTodaySales,
-    loadSales
+    loadSales,
+    setModalOpen
   } = useSales();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -173,6 +174,12 @@ export const SalesView: React.FC = () => {
       }
     }
   }, [sales, selectedSale?.id]);
+
+  // Controlar estado de modales para realtime updates
+  useEffect(() => {
+    const anyModalOpen = isAddModalOpen || isEditModalOpen || isDetailsModalOpen;
+    setModalOpen(anyModalOpen);
+  }, [isAddModalOpen, isEditModalOpen, isDetailsModalOpen, setModalOpen]);
 
   const handleCreateSale = () => {
     setSelectedSale(null);

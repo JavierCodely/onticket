@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, ShoppingCart, Calendar, Eye } from 'lucide-react';
+import { Plus, Search, ShoppingCart, Eye } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -31,15 +31,14 @@ export const EmployeeSalesView: React.FC = () => {
     error,
     createSale,
     filterSales,
-    clearError
+    clearError,
+    setModalOpen
   } = useEmployeeSales();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | 'all'>('all');
   const [selectedStatus, setSelectedStatus] = useState<SaleStatus | 'all'>('all');
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SaleWithDetails | null>(null);
@@ -48,9 +47,7 @@ export const EmployeeSalesView: React.FC = () => {
     searchTerm,
     selectedPaymentMethod === 'all' ? undefined : selectedPaymentMethod,
     selectedStatus === 'all' ? undefined : selectedStatus,
-    selectedEmployee,
-    startDate || undefined,
-    endDate || undefined
+    selectedEmployee
   );
 
   useEffect(() => {
@@ -71,6 +68,12 @@ export const EmployeeSalesView: React.FC = () => {
       }
     }
   }, [sales, selectedSale?.id]);
+
+  // Controlar estado de modales para realtime updates
+  useEffect(() => {
+    const anyModalOpen = isAddModalOpen || isDetailsModalOpen;
+    setModalOpen(anyModalOpen);
+  }, [isAddModalOpen, isDetailsModalOpen, setModalOpen]);
 
   const handleCreateSale = () => {
     setSelectedSale(null);
@@ -194,67 +197,6 @@ export const EmployeeSalesView: React.FC = () => {
               </Select>
             </div>
 
-            {/* Segunda fila - Filtros de fecha */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Filtrar por fecha:</span>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 flex-1">
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="date"
-                    placeholder="Fecha desde"
-                    value={startDate}
-                    onChange={(e) => {
-                      const newStartDate = e.target.value;
-                      setStartDate(newStartDate);
-                      if (!endDate || (newStartDate && newStartDate > endDate)) {
-                        setEndDate(newStartDate);
-                      }
-                    }}
-                    className="w-full sm:w-40"
-                  />
-                  <span className="text-gray-400 text-sm whitespace-nowrap">hasta</span>
-                  <Input
-                    type="date"
-                    placeholder="Fecha hasta"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full sm:w-40"
-                  />
-                </div>
-
-                <div className="flex gap-1 items-center flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      setStartDate(today);
-                      setEndDate(today);
-                    }}
-                    className="text-xs h-8"
-                  >
-                    Hoy
-                  </Button>
-                  {(startDate || endDate) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setStartDate('');
-                        setEndDate('');
-                      }}
-                      className="text-xs h-8"
-                    >
-                      Limpiar
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
         </CardHeader>
 

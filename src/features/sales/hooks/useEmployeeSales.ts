@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/core/config/supabase';
 import { employeeSalesService, type CreateEmployeeSaleData } from '../services/employeeSalesService';
 import { useProducts } from '@/features/products/hooks/useProducts';
 import type { SaleWithDetails, SaleStats, PaymentMethod, SaleStatus } from '../types';
@@ -7,6 +8,8 @@ export const useEmployeeSales = () => {
   const [sales, setSales] = useState<SaleWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const subscriptionRef = useRef<any>(null);
 
   const { products } = useProducts();
 
@@ -176,10 +179,56 @@ export const useEmployeeSales = () => {
     setError(null);
   }, []);
 
-  // Initialize with today's sales
+  // Función para configurar subscripción en tiempo real
+  const setupRealtimeSubscription = useCallback(() => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+    }
+
+    subscriptionRef.current = supabase
+      .channel('employee-sales-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sales'
+        },
+        async (payload) => {
+          console.log('Employee view - Sale change detected:', payload);
+
+          // Solo actualizar si no hay modales abiertos
+          if (!isModalOpen) {
+            try {
+              // Recargar las ventas sin mostrar loading
+              const data = await employeeSalesService.getTodaySales();
+              setSales(data);
+            } catch (err) {
+              console.error('Error updating employee sales after realtime change:', err);
+            }
+          }
+        }
+      )
+      .subscribe();
+  }, [isModalOpen]);
+
+  // Funciones para controlar estado de modales
+  const setModalOpen = useCallback((open: boolean) => {
+    setIsModalOpen(open);
+  }, []);
+
+  // Initialize with today's sales and setup realtime
   useEffect(() => {
     fetchTodaySales();
-  }, [fetchTodaySales]);
+    setupRealtimeSubscription();
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+    };
+  }, [fetchTodaySales, setupRealtimeSubscription]);
 
   return {
     // State
@@ -195,6 +244,7 @@ export const useEmployeeSales = () => {
     getSalesStatsFromData,
     getSalesStats,
     clearError,
+    setModalOpen,
 
     // Related data
     products
