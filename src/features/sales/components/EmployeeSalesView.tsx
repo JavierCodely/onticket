@@ -21,7 +21,7 @@ import {
 import { Badge } from '@/shared/components/ui/badge';
 import { useEmployeeSales } from '../hooks/useEmployeeSales';
 import { EmployeeAddSaleModal } from './EmployeeAddSaleModal';
-import { EmployeeSaleDetailsModal } from './EmployeeSaleDetailsModal';
+import { SaleDetailsModalNew } from './SaleDetailsModalNew';
 import { PAYMENT_METHOD_CONFIG, SALE_STATUS_CONFIG, type PaymentMethod, type SaleStatus, type SaleWithDetails } from '../types';
 
 export const EmployeeSalesView: React.FC = () => {
@@ -299,10 +299,11 @@ export const EmployeeSalesView: React.FC = () => {
         onSave={handleSaveSale}
       />
 
-      <EmployeeSaleDetailsModal
+      <SaleDetailsModalNew
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
         sale={selectedSale}
+        showEditButton={false}
       />
     </div>
   );

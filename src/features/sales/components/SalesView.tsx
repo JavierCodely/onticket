@@ -22,7 +22,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { useSales } from '../hooks/useSales';
 import { AddSaleModal } from './AddSaleModal';
 import { EditSaleModal } from './EditSaleModal';
-import { SaleDetailsModal } from './SaleDetailsModal';
+import { SaleDetailsModalNew } from './SaleDetailsModalNew';
 import { PAYMENT_METHOD_CONFIG, SALE_STATUS_CONFIG, type PaymentMethod, type SaleStatus, type SaleWithDetails } from '../types';
 
 export const SalesView: React.FC = () => {
@@ -599,10 +599,11 @@ export const SalesView: React.FC = () => {
         employees={employees}
       />
 
-      <SaleDetailsModal
+      <SaleDetailsModalNew
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
         sale={selectedSale}
+        showEditButton={true}
         onEdit={() => {
           setIsDetailsModalOpen(false);
           setIsEditModalOpen(true);
