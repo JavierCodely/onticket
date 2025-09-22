@@ -213,4 +213,122 @@ export interface PaymentFilters {
   recipient_name?: string;
 }
 
+// Promotion system types
+export type PromotionType = 'percentage' | 'fixed_amount' | 'fixed_price' | 'combo';
+export type PromotionStatus = 'active' | 'inactive';
+
+export interface Promotion {
+  id: string;
+  club_id: string;
+  product_id?: string; // Opcional para combos
+  name: string;
+  description?: string;
+  promotion_type: PromotionType;
+  discount_value: number;
+  max_discount_amount?: number;
+  final_price?: number;
+  start_date?: string;
+  end_date?: string;
+  max_uses?: number;
+  current_uses: number;
+  min_quantity: number;
+  max_quantity?: number;
+  status: PromotionStatus;
+  priority: number;
+  created_by?: string;
+  updated_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Tipos específicos para combos
+export interface ComboItem {
+  product_id: string;
+  product_name: string;
+  product_sku?: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  display_order: number;
+}
+
+export interface PromotionItem {
+  id: string;
+  promotion_id: string;
+  product_id: string;
+  quantity: number;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PromotionWithDetails extends Promotion {
+  // Campos para promociones de producto único (compatibilidad)
+  product_name?: string;
+  product_sku?: string;
+  original_price?: number;
+  product_category?: string;
+  product_status?: string;
+
+  // Campos para combos
+  combo_items?: ComboItem[];
+  combo_original_price?: number;
+
+  // Campos calculados comunes
+  discount_display: string;
+  discount_amount: number;
+  discount_percentage: number;
+  is_available: boolean;
+  available_stock: number;
+}
+
+export interface CreatePromotionData {
+  product_id?: string; // Opcional para combos
+  name: string;
+  description?: string;
+  promotion_type: PromotionType;
+  discount_value: number;
+  max_discount_amount?: number;
+  start_date?: string;
+  end_date?: string;
+  max_uses?: number;
+  min_quantity?: number;
+  max_quantity?: number;
+  priority?: number;
+  // Para combos
+  combo_items?: Array<{
+    product_id: string;
+    quantity: number;
+  }>;
+}
+
+export interface UpdatePromotionData {
+  name?: string;
+  description?: string;
+  promotion_type?: PromotionType;
+  discount_value?: number;
+  max_discount_amount?: number;
+  start_date?: string;
+  end_date?: string;
+  max_uses?: number;
+  min_quantity?: number;
+  max_quantity?: number;
+  status?: PromotionStatus;
+  priority?: number;
+}
+
+export interface PromotionPriceResult {
+  original_price: number;
+  final_price: number;
+  discount_amount: number;
+  discount_percentage: number;
+  promotion_id?: string;
+  promotion_name?: string;
+  promotion_description?: string;
+  has_promotion: boolean;
+  total_original: number;
+  total_final: number;
+  total_savings: number;
+}
+
 

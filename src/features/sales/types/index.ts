@@ -57,6 +57,7 @@ export interface CreateSaleData {
   payment_details?: Record<string, any>;
   discount_amount?: number;
   notes?: string;
+  promotions_used?: Array<{promotion_id: string, quantity: number}>;
 }
 
 export interface UpdateSaleData {

@@ -15,6 +15,7 @@ export interface CreateEmployeeSaleData {
   payment_details?: Record<string, any>;
   discount_amount?: number;
   notes?: string;
+  promotions_used?: Array<{promotion_id: string, quantity: number}>;
 }
 
 export class EmployeeSalesService {
@@ -116,10 +117,36 @@ export class EmployeeSalesService {
         throw new Error('No se recibió ID de la venta creada');
       }
 
+      // Actualizar contadores de promociones si se usaron
+      if (saleData.promotions_used && saleData.promotions_used.length > 0) {
+        await this.updatePromotionUsage(saleData.promotions_used);
+      }
+
       return data;
     } catch (error) {
       console.error('Error in createSale:', error);
       throw error;
+    }
+  }
+
+  private async updatePromotionUsage(promotionsUsed: Array<{promotion_id: string, quantity: number}>): Promise<void> {
+    try {
+      // Ejecutar todas las actualizaciones en paralelo en lugar de secuencialmente
+      const promises = promotionsUsed.map(usage =>
+        supabase.rpc('fn_use_promotion', {
+          p_promotion_id: usage.promotion_id,
+          p_quantity: usage.quantity
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Error updating promotion usage:', error);
+          }
+        })
+      );
+
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('Error in updatePromotionUsage:', error);
+      // No lanzar error aquí para no afectar la venta
     }
   }
 

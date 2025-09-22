@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Minus, Search, X } from 'lucide-react';
+import { Plus, Minus, Search, X, Tag } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -24,6 +24,9 @@ import { useProducts } from '@/features/products/hooks/useProducts';
 import { parseNumberInput } from '@/shared/utils/numberUtils';
 import type { CreateSaleData, CreateSaleItem, PaymentMethod } from '../types';
 import { PAYMENT_METHOD_CONFIG } from '../types';
+import { PromotionPriceSimple } from './PromotionPriceDisplay';
+import type { PromotionPriceResult, PromotionWithDetails } from '@/core/types/database';
+import { useActivePromotions } from '@/features/promotions/hooks/usePromotions';
 
 interface AddSaleModalProps {
   isOpen: boolean;
@@ -38,6 +41,7 @@ interface SaleItemForm extends CreateSaleItem {
   available_stock: number;
   product_sale_price: number;
   product_cost_price: number;
+  promotion_data?: PromotionPriceResult | null;
 }
 
 export const AddSaleModal: React.FC<AddSaleModalProps> = ({
@@ -47,6 +51,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   employees
 }) => {
   const { products } = useProducts();
+  const { activePromotions, refetch: refetchPromotions } = useActivePromotions();
 
   const [formData, setFormData] = useState({
     employee_user_id: '',
@@ -68,6 +73,14 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Filtrar promociones que coincidan con la búsqueda
+  const availablePromotions = activePromotions.filter(promotion =>
+    promotion.status === 'active' &&
+    promotion.is_available &&
+    (promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     (promotion.product_name && promotion.product_name.toLowerCase().includes(searchTerm.toLowerCase())))
+  );
+
   // Determinar si usar precio de costo (admin) o precio de venta (empleado)
   const isAdminSale = selectedEmployeeRole === 'admin';
   const getPriceForProduct = (product: any) => {
@@ -75,7 +88,13 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   };
 
   const subtotal = items.reduce((sum, item) => {
-    const price = isAdminSale && item.product_cost_price ? item.product_cost_price : (item.unit_price || item.product_sale_price);
+    // Usar precio de promoción si está disponible, sino usar precio normal
+    let price;
+    if (item.promotion_data && item.promotion_data.has_promotion) {
+      price = item.promotion_data.final_price;
+    } else {
+      price = isAdminSale && item.product_cost_price ? item.product_cost_price : (item.unit_price || item.product_sale_price);
+    }
     return sum + price * item.quantity;
   }, 0);
   const total = subtotal - formData.discount_amount;
@@ -95,6 +114,24 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     }
   }, [isOpen]);
 
+  // Escuchar eventos de actualización de promociones
+  useEffect(() => {
+    const handlePromotionUpdate = () => {
+      refetchPromotions();
+    };
+
+    // Escuchar el evento personalizado
+    window.addEventListener('promotionCreated', handlePromotionUpdate);
+    window.addEventListener('promotionUpdated', handlePromotionUpdate);
+    window.addEventListener('promotionDeleted', handlePromotionUpdate);
+
+    return () => {
+      window.removeEventListener('promotionCreated', handlePromotionUpdate);
+      window.removeEventListener('promotionUpdated', handlePromotionUpdate);
+      window.removeEventListener('promotionDeleted', handlePromotionUpdate);
+    };
+  }, [refetchPromotions]);
+
   const handleEmployeeChange = (userId: string) => {
     const employee = employees.find(emp => emp.user_id === userId);
     const role = employee?.category || '';
@@ -106,10 +143,40 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     }));
 
     // Actualizar precios de items existentes cuando cambia el rol
-    setItems(prevItems => prevItems.map(item => ({
-      ...item,
-      unit_price: role === 'admin' ? item.product_cost_price : item.product_sale_price
-    })));
+    setItems(prevItems => prevItems.map(item => {
+      if (item.promotion_data && item.promotion_data.has_promotion) {
+        // Para items con promoción
+        if (role === 'admin') {
+          // Admin usa precio de compra, ignora promociones
+          return {
+            ...item,
+            unit_price: item.product_cost_price,
+            product_name: item.product_name.includes(' - Admin') ? item.product_name : `${item.product_name} - Admin`,
+            promotion_data: {
+              ...item.promotion_data,
+              has_promotion: false // Admin no usa promociones
+            }
+          };
+        } else {
+          // No-admin usa precio de promoción
+          return {
+            ...item,
+            unit_price: item.promotion_data.final_price,
+            product_name: item.product_name.replace(' - Admin', ''),
+            promotion_data: {
+              ...item.promotion_data,
+              has_promotion: true // Reactivar promoción
+            }
+          };
+        }
+      } else {
+        // Para items sin promoción
+        return {
+          ...item,
+          unit_price: role === 'admin' ? item.product_cost_price : item.product_sale_price
+        };
+      }
+    }));
   };
 
   const addProduct = (productId: string) => {
@@ -135,6 +202,87 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     setSearchTerm('');
   };
 
+  const addPromotion = (promotion: PromotionWithDetails) => {
+    if (promotion.promotion_type === 'combo') {
+      // Para combos, agregar todos los productos del combo
+      if (promotion.combo_items) {
+        const comboItems = JSON.parse(promotion.combo_items as string);
+        comboItems.forEach((comboItem: any) => {
+          const product = products.find(p => p.id === comboItem.product_id);
+          if (product) {
+            // Para admin: usar precio de compra, para otros: usar precio de promoción
+            const basePrice = isAdminSale ? product.cost_price : product.sale_price;
+            const finalPrice = isAdminSale ? product.cost_price : (promotion.final_price / comboItems.length);
+
+            const newItem: SaleItemForm = {
+              id: Math.random().toString(36).substr(2, 9),
+              product_id: product.id,
+              product_name: `${product.name} (Combo: ${promotion.name})${isAdminSale ? ' - Admin' : ''}`,
+              quantity: comboItem.quantity,
+              unit_price: finalPrice,
+              product_sale_price: product.sale_price,
+              product_cost_price: product.cost_price,
+              available_stock: product.available_stock,
+              promotion_data: {
+                has_promotion: !isAdminSale, // Admin no usa promociones
+                promotion_id: promotion.id,
+                promotion_name: promotion.name,
+                promotion_description: promotion.description,
+                original_price: basePrice,
+                final_price: finalPrice,
+                total_original: basePrice * comboItem.quantity,
+                total_final: finalPrice * comboItem.quantity,
+                total_savings: isAdminSale ? 0 : (basePrice - finalPrice) * comboItem.quantity,
+                discount_amount: isAdminSale ? 0 : basePrice - finalPrice,
+                discount_percentage: isAdminSale ? 0 : ((basePrice - finalPrice) / basePrice) * 100
+              }
+            };
+            setItems(prev => [newItem, ...prev]);
+          }
+        });
+      }
+    } else {
+      // Para promociones individuales
+      const product = products.find(p => p.id === promotion.product_id);
+      if (product) {
+        const existingItem = items.find(item => item.product_id === promotion.product_id);
+        if (existingItem) {
+          updateItemQuantity(existingItem.id, existingItem.quantity + 1);
+        } else {
+          // Para admin: usar precio de compra, para otros: usar precio de promoción
+          const basePrice = isAdminSale ? product.cost_price : product.sale_price;
+          const finalPrice = isAdminSale ? product.cost_price : promotion.final_price;
+
+          const newItem: SaleItemForm = {
+            id: Math.random().toString(36).substr(2, 9),
+            product_id: product.id,
+            product_name: `${product.name} (${promotion.name})${isAdminSale ? ' - Admin' : ''}`,
+            quantity: 1,
+            unit_price: finalPrice,
+            product_sale_price: product.sale_price,
+            product_cost_price: product.cost_price,
+            available_stock: product.available_stock,
+            promotion_data: {
+              has_promotion: !isAdminSale, // Admin no usa promociones
+              promotion_id: promotion.id,
+              promotion_name: promotion.name,
+              promotion_description: promotion.description,
+              original_price: basePrice,
+              final_price: finalPrice,
+              total_original: basePrice,
+              total_final: finalPrice,
+              total_savings: isAdminSale ? 0 : basePrice - finalPrice,
+              discount_amount: isAdminSale ? 0 : basePrice - finalPrice,
+              discount_percentage: isAdminSale ? 0 : (promotion.discount_percentage || 0)
+            }
+          };
+          setItems(prev => [newItem, ...prev]);
+        }
+      }
+    }
+    setSearchTerm('');
+  };
+
   const updateItemQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       removeItem(itemId);
@@ -143,9 +291,52 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
+        let maxAllowed = item.available_stock;
+
+        // Validar límites de promoción
+        if (item.promotion_data && item.promotion_data.promotion_id) {
+          const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+          if (promotion) {
+            // 1. Verificar si quedan ventas disponibles (max_uses)
+            if (promotion.max_uses) {
+              const ventasDisponibles = promotion.max_uses - promotion.current_uses;
+              if (ventasDisponibles <= 0) {
+                maxAllowed = 0; // No se puede agregar ningún producto
+              }
+            }
+
+            // 2. Verificar cantidad máxima por venta (max_quantity)
+            if (promotion.max_quantity && maxAllowed > 0) {
+              maxAllowed = Math.min(maxAllowed, promotion.max_quantity);
+            }
+          }
+        }
+
+        const finalQuantity = Math.min(Math.max(1, newQuantity), maxAllowed);
+
+        // Mostrar mensaje si se alcanzó algún límite
+        if (newQuantity > maxAllowed && item.promotion_data) {
+          const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+          if (promotion) {
+            // Verificar qué límite se alcanzó
+            if (promotion.max_uses) {
+              const ventasDisponibles = promotion.max_uses - promotion.current_uses;
+              if (ventasDisponibles <= 0) {
+                alert(`Esta promoción ha alcanzado su límite de ${promotion.max_uses} ventas (${promotion.current_uses} ventas realizadas)`);
+                return;
+              }
+            }
+
+            if (promotion.max_quantity && newQuantity > promotion.max_quantity) {
+              alert(`Esta promoción permite máximo ${promotion.max_quantity} productos por venta`);
+              return;
+            }
+          }
+        }
+
         return {
           ...item,
-          quantity: Math.min(Math.max(1, newQuantity), item.available_stock)
+          quantity: finalQuantity
         };
       }
       return item;
@@ -155,6 +346,19 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
   const removeItem = (itemId: string) => {
     setItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handlePromotionChange = (itemId: string, promotionData: PromotionPriceResult) => {
+    setItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          promotion_data: promotionData,
+          unit_price: promotionData.has_promotion ? promotionData.final_price : item.unit_price
+        };
+      }
+      return item;
+    }));
   };
 
   const handleSubmit = async () => {
@@ -181,6 +385,22 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     try {
       setIsSubmitting(true);
 
+      // Recolectar promociones usadas (1 por venta, no por cantidad de productos)
+      const promotionsUsed: Array<{promotion_id: string, quantity: number}> = [];
+      items.forEach(item => {
+        if (item.promotion_data && item.promotion_data.promotion_id && item.promotion_data.has_promotion) {
+          const existingPromo = promotionsUsed.find(p => p.promotion_id === item.promotion_data?.promotion_id);
+          if (!existingPromo) {
+            // Solo agregar 1 uso por promoción, sin importar la cantidad de productos
+            promotionsUsed.push({
+              promotion_id: item.promotion_data.promotion_id,
+              quantity: 1 // Siempre 1 porque es por VENTA, no por cantidad
+            });
+          }
+          // Si ya existe, no sumar más porque es la misma venta
+        }
+      });
+
       const saleData: CreateSaleData = {
         employee_user_id: formData.employee_user_id || undefined,
         employee_name: formData.employee_name,
@@ -191,7 +411,8 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         })),
         payment_method: formData.payment_method,
         discount_amount: formData.discount_amount,
-        notes: formData.notes || undefined
+        notes: formData.notes || undefined,
+        promotions_used: promotionsUsed.length > 0 ? promotionsUsed : undefined
       };
 
       await onSave(saleData);
@@ -264,11 +485,27 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                       employee_user_id: ''
                     }));
                     setSelectedEmployeeRole('');
-                    // Actualizar precios de items existentes cuando se cambia manualmente
-                    setItems(prevItems => prevItems.map(item => ({
-                      ...item,
-                      unit_price: item.product_sale_price
-                    })));
+                    // Actualizar precios de items existentes cuando se cambia manualmente (usar precio de venta)
+                    setItems(prevItems => prevItems.map(item => {
+                      if (item.promotion_data && item.promotion_data.promotion_id) {
+                        // Para items con promoción, reactivar la promoción (no es admin)
+                        return {
+                          ...item,
+                          unit_price: item.promotion_data.final_price,
+                          product_name: item.product_name.replace(' - Admin', ''),
+                          promotion_data: {
+                            ...item.promotion_data,
+                            has_promotion: true // Reactivar promoción
+                          }
+                        };
+                      } else {
+                        // Para items sin promoción, usar precio de venta
+                        return {
+                          ...item,
+                          unit_price: item.product_sale_price
+                        };
+                      }
+                    }));
                   }}
                   className="h-9"
                 />
@@ -363,9 +600,37 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
               </div>
             </div>
 
-            {/* Lista de productos disponibles */}
+            {/* Lista de productos y promociones disponibles */}
             {searchTerm && (
-              <div className="max-h-32 overflow-y-auto border rounded-lg">
+              <div className="max-h-40 overflow-y-auto border rounded-lg">
+                {/* Promociones activas */}
+                {availablePromotions.map((promotion) => (
+                  <div
+                    key={`promo-${promotion.id}`}
+                    className="p-2 hover:bg-green-50 cursor-pointer border-b last:border-b-0 bg-green-25"
+                    onClick={() => addPromotion(promotion)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-3 w-3 text-green-600" />
+                          <p className="font-medium text-sm text-green-800">{promotion.name}</p>
+                        </div>
+                        <p className="text-xs text-green-600">
+                          {promotion.product_name} • {promotion.discount_display}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Precio final: ${promotion.final_price?.toFixed(2)}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-green-200 text-green-600">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Productos normales */}
                 {availableProducts.map((product) => (
                   <div
                     key={product.id}
@@ -388,6 +653,13 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                     </div>
                   </div>
                 ))}
+
+                {/* Mensaje cuando no hay resultados */}
+                {availablePromotions.length === 0 && availableProducts.length === 0 && (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    No se encontraron productos ni promociones
+                  </div>
+                )}
               </div>
             )}
 
@@ -405,7 +677,36 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                       {/* Nombre del producto */}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{item.product_name}</p>
-                        <p className="text-xs text-muted-foreground">Stock: {item.available_stock}</p>
+                        <div className="text-xs text-muted-foreground">
+                          <div>Stock: {item.available_stock}</div>
+                          {/* Mostrar límites de promoción si aplica */}
+                          {item.promotion_data && item.promotion_data.promotion_id && (() => {
+                            const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+                            if (promotion) {
+                              const limits = [];
+
+                              // Mostrar límite de ventas
+                              if (promotion.max_uses) {
+                                const ventasDisponibles = promotion.max_uses - promotion.current_uses;
+                                limits.push(`${ventasDisponibles} ventas disponibles`);
+                              }
+
+                              // Mostrar límite de cantidad por venta
+                              if (promotion.max_quantity) {
+                                limits.push(`máx ${promotion.max_quantity} por venta`);
+                              }
+
+                              if (limits.length > 0) {
+                                return (
+                                  <div className="text-orange-600">
+                                    Promo: {limits.join(' • ')}
+                                  </div>
+                                );
+                              }
+                            }
+                            return null;
+                          })()}
+                        </div>
                       </div>
 
                       {/* Cantidad */}
@@ -455,16 +756,44 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.available_stock}
+                          disabled={(() => {
+                            let maxAllowed = item.available_stock;
+
+                            // Verificar límites de promoción
+                            if (item.promotion_data && item.promotion_data.promotion_id) {
+                              const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+                              if (promotion) {
+                                // 1. Verificar si quedan ventas disponibles (max_uses)
+                                if (promotion.max_uses) {
+                                  const ventasDisponibles = promotion.max_uses - promotion.current_uses;
+                                  if (ventasDisponibles <= 0) {
+                                    maxAllowed = 0;
+                                  }
+                                }
+
+                                // 2. Verificar cantidad máxima por venta (max_quantity)
+                                if (promotion.max_quantity && maxAllowed > 0) {
+                                  maxAllowed = Math.min(maxAllowed, promotion.max_quantity);
+                                }
+                              }
+                            }
+
+                            return item.quantity >= maxAllowed;
+                          })()}
                           className="h-6 w-6 p-0"
                         >
                           <Plus className="h-2.5 w-2.5" />
                         </Button>
                       </div>
 
-                      {/* Precio unitario */}
-                      <div className="text-xs text-muted-foreground w-12 text-right">
-                        ${(item.unit_price || 0).toFixed(2)}
+                      {/* Precio unitario con promociones */}
+                      <div className="w-20 text-right">
+                        <PromotionPriceSimple
+                          productId={item.product_id}
+                          quantity={item.quantity}
+                          originalPrice={isAdminSale && item.product_cost_price ? item.product_cost_price : item.product_sale_price}
+                          onPriceChange={(promotionData) => handlePromotionChange(item.id, promotionData)}
+                        />
                         {isAdminSale && item.product_cost_price && (
                           <div className="text-xs text-blue-600">Admin</div>
                         )}
@@ -472,7 +801,15 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
                       {/* Total */}
                       <div className="font-medium text-sm w-16 text-right">
-                        ${((item.unit_price || 0) * item.quantity).toFixed(2)}
+                        ${(() => {
+                          let price;
+                          if (item.promotion_data && item.promotion_data.has_promotion) {
+                            return item.promotion_data.total_final.toFixed(2);
+                          } else {
+                            price = isAdminSale && item.product_cost_price ? item.product_cost_price : (item.unit_price || item.product_sale_price);
+                            return (price * item.quantity).toFixed(2);
+                          }
+                        })()}
                       </div>
 
                       {/* Botón eliminar */}

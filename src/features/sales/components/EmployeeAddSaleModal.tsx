@@ -24,6 +24,7 @@ import { parseNumberInput } from '@/shared/utils/numberUtils';
 import { PAYMENT_METHOD_CONFIG } from '../types';
 import type { CreateEmployeeSaleData } from '../services/employeeSalesService';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useActivePromotions } from '@/features/promotions/hooks/usePromotions';
 
 interface EmployeeAddSaleModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
 }) => {
   const { products } = useProducts();
   const { employee } = useAuth();
+  const { activePromotions, refetch: refetchPromotions } = useActivePromotions();
 
   const [formData, setFormData] = useState({
     payment_method: '' as 'cash' | 'transfer' | 'credit' | 'debit' | '',
@@ -80,6 +82,24 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     }
   }, [isOpen]);
 
+  // Escuchar eventos de actualización de promociones
+  useEffect(() => {
+    const handlePromotionUpdate = () => {
+      refetchPromotions();
+    };
+
+    // Escuchar el evento personalizado
+    window.addEventListener('promotionCreated', handlePromotionUpdate);
+    window.addEventListener('promotionUpdated', handlePromotionUpdate);
+    window.addEventListener('promotionDeleted', handlePromotionUpdate);
+
+    return () => {
+      window.removeEventListener('promotionCreated', handlePromotionUpdate);
+      window.removeEventListener('promotionUpdated', handlePromotionUpdate);
+      window.removeEventListener('promotionDeleted', handlePromotionUpdate);
+    };
+  }, [refetchPromotions]);
+
   const addProduct = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -110,9 +130,52 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
 
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
+        let maxAllowed = item.available_stock;
+
+        // Validar límites de promoción
+        if (item.promotion_data && item.promotion_data.promotion_id) {
+          const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+          if (promotion) {
+            // 1. Verificar si quedan ventas disponibles (max_uses)
+            if (promotion.max_uses) {
+              const ventasDisponibles = promotion.max_uses - promotion.current_uses;
+              if (ventasDisponibles <= 0) {
+                maxAllowed = 0; // No se puede agregar ningún producto
+              }
+            }
+
+            // 2. Verificar cantidad máxima por venta (max_quantity)
+            if (promotion.max_quantity && maxAllowed > 0) {
+              maxAllowed = Math.min(maxAllowed, promotion.max_quantity);
+            }
+          }
+        }
+
+        const finalQuantity = Math.min(Math.max(1, newQuantity), maxAllowed);
+
+        // Mostrar mensaje si se alcanzó algún límite
+        if (newQuantity > maxAllowed && item.promotion_data) {
+          const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+          if (promotion) {
+            // Verificar qué límite se alcanzó
+            if (promotion.max_uses) {
+              const ventasDisponibles = promotion.max_uses - promotion.current_uses;
+              if (ventasDisponibles <= 0) {
+                alert(`Esta promoción ha alcanzado su límite de ${promotion.max_uses} ventas (${promotion.current_uses} ventas realizadas)`);
+                return;
+              }
+            }
+
+            if (promotion.max_quantity && newQuantity > promotion.max_quantity) {
+              alert(`Esta promoción permite máximo ${promotion.max_quantity} productos por venta`);
+              return;
+            }
+          }
+        }
+
         return {
           ...item,
-          quantity: Math.min(Math.max(1, newQuantity), item.available_stock)
+          quantity: finalQuantity
         };
       }
       return item;
@@ -142,6 +205,22 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     try {
       setIsSubmitting(true);
 
+      // Recolectar promociones usadas (1 por venta, no por cantidad de productos)
+      const promotionsUsed: Array<{promotion_id: string, quantity: number}> = [];
+      items.forEach(item => {
+        if (item.promotion_data && item.promotion_data.promotion_id && item.promotion_data.has_promotion) {
+          const existingPromo = promotionsUsed.find(p => p.promotion_id === item.promotion_data?.promotion_id);
+          if (!existingPromo) {
+            // Solo agregar 1 uso por promoción, sin importar la cantidad de productos
+            promotionsUsed.push({
+              promotion_id: item.promotion_data.promotion_id,
+              quantity: 1 // Siempre 1 porque es por VENTA, no por cantidad
+            });
+          }
+          // Si ya existe, no sumar más porque es la misma venta
+        }
+      });
+
       const saleData: CreateEmployeeSaleData = {
         items: items.map(item => ({
           product_id: item.product_id,
@@ -150,7 +229,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
         })),
         payment_method: formData.payment_method,
         discount_amount: formData.discount_amount,
-        notes: formData.notes || undefined
+        notes: formData.notes || undefined,
+        promotions_used: promotionsUsed.length > 0 ? promotionsUsed : undefined
       };
 
       await onSave(saleData);
