@@ -25,7 +25,9 @@ import { PAYMENT_METHOD_CONFIG } from '../types';
 import type { CreateEmployeeSaleData } from '../services/employeeSalesService';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useActivePromotions } from '@/features/promotions/hooks/usePromotions';
-import type { PromotionPriceResult } from '@/core/types/database';
+import type { PromotionPriceResult, PromotionWithDetails } from '@/core/types/database';
+import { PromotionPriceSimple } from './PromotionPriceDisplay';
+import { Tag } from 'lucide-react';
 
 interface EmployeeAddSaleModalProps {
   isOpen: boolean;
@@ -70,7 +72,22 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const subtotal = items.reduce((sum, item) => sum + (item.unit_price || item.product_sale_price) * item.quantity, 0);
+  // Filtrar promociones que coincidan con la búsqueda
+  const availablePromotions = activePromotions.filter(promotion =>
+    promotion.status === 'active' &&
+    promotion.is_available &&
+    (promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     (promotion.product_name && promotion.product_name.toLowerCase().includes(searchTerm.toLowerCase())))
+  );
+
+  const subtotal = items.reduce((sum, item) => {
+    // Usar precio de promoción si está disponible, sino usar precio normal
+    if (item.promotion_data && item.promotion_data.has_promotion) {
+      return sum + item.promotion_data.final_price * item.quantity;
+    } else {
+      return sum + (item.unit_price || item.product_sale_price) * item.quantity;
+    }
+  }, 0);
   const total = subtotal - formData.discount_amount;
 
   useEffect(() => {
@@ -175,6 +192,87 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     setSearchTerm('');
   };
 
+  const addPromotion = (promotion: PromotionWithDetails) => {
+    if (promotion.promotion_type === 'combo') {
+      // Para combos, agregar todos los productos del combo
+      if (promotion.combo_items) {
+        const comboItems = JSON.parse(promotion.combo_items as unknown as string);
+        comboItems.forEach((comboItem: any) => {
+          const product = products.find(p => p.id === comboItem.product_id);
+          if (product) {
+            const finalPrice = (promotion.final_price || product.sale_price) / comboItems.length;
+
+            const newItem: SaleItemForm = {
+              id: Math.random().toString(36).substr(2, 9),
+              product_id: product.id,
+              product_name: `${product.name} (Combo: ${promotion.name})`,
+              quantity: comboItem.quantity,
+              unit_price: finalPrice,
+              product_sale_price: product.sale_price,
+              available_stock: product.available_stock,
+              promotion_data: {
+                has_promotion: true,
+                promotion_id: promotion.id,
+                promotion_name: promotion.name,
+                promotion_description: promotion.description,
+                original_price: product.sale_price,
+                final_price: finalPrice,
+                total_original: product.sale_price * comboItem.quantity,
+                total_final: finalPrice * comboItem.quantity,
+                total_savings: (product.sale_price - finalPrice) * comboItem.quantity,
+                discount_amount: product.sale_price - finalPrice,
+                discount_percentage: ((product.sale_price - finalPrice) / product.sale_price) * 100
+              }
+            };
+            setItems(prev => [newItem, ...prev]);
+          }
+        });
+      }
+    } else {
+      // Para promociones individuales
+      const product = products.find(p => p.id === promotion.product_id);
+      if (product) {
+        const existingItem = items.find(item => item.product_id === promotion.product_id);
+        if (existingItem) {
+          updateItemQuantity(existingItem.id, existingItem.quantity + 1);
+        } else {
+          // Verificar si se cumple la cantidad mínima para aplicar la promoción
+          const minQuantityRequired = promotion.min_quantity || 1;
+          const shouldApplyPromotion = (1 >= minQuantityRequired);
+
+          const finalPrice = shouldApplyPromotion ? (promotion.final_price || product.sale_price) : product.sale_price;
+
+          const newItem: SaleItemForm = {
+            id: Math.random().toString(36).substr(2, 9),
+            product_id: product.id,
+            product_name: shouldApplyPromotion ?
+              `${product.name} (${promotion.name})` :
+              `${product.name} (${promotion.name} - Requiere ${minQuantityRequired} unid.)`,
+            quantity: 1,
+            unit_price: finalPrice,
+            product_sale_price: product.sale_price,
+            available_stock: product.available_stock,
+            promotion_data: {
+              has_promotion: shouldApplyPromotion, // Solo si cumple cantidad mínima
+              promotion_id: promotion.id,
+              promotion_name: promotion.name,
+              promotion_description: promotion.description,
+              original_price: product.sale_price,
+              final_price: finalPrice,
+              total_original: product.sale_price,
+              total_final: finalPrice,
+              total_savings: shouldApplyPromotion ? (product.sale_price - finalPrice) : 0,
+              discount_amount: shouldApplyPromotion ? (product.sale_price - finalPrice) : 0,
+              discount_percentage: shouldApplyPromotion ? (promotion.discount_percentage || 0) : 0
+            }
+          };
+          setItems(prev => [newItem, ...prev]);
+        }
+      }
+    }
+    setSearchTerm('');
+  };
+
   // Función auxiliar para calcular cantidad total de un producto en el carrito
   const getTotalQuantityInCart = (productId: string): number => {
     return items
@@ -272,9 +370,50 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
           }
         }
 
+        // Recalcular promoción basándose en la nueva cantidad
+        let updatedPromotionData = item.promotion_data;
+        let updatedUnitPrice = item.unit_price;
+        let updatedProductName = item.product_name;
+
+        if (item.promotion_data && item.promotion_data.promotion_id) {
+          const promotion = activePromotions.find(p => p.id === item.promotion_data.promotion_id);
+          if (promotion) {
+            const minQuantityRequired = promotion.min_quantity || 1;
+            const meetsMinimum = finalQuantity >= minQuantityRequired;
+            const shouldApplyPromotion = meetsMinimum;
+
+            // Actualizar precio según si se cumple la cantidad mínima
+            updatedUnitPrice = shouldApplyPromotion ?
+              (promotion.final_price || item.product_sale_price) :
+              item.product_sale_price;
+
+            // Actualizar nombre del producto
+            const product = products.find(p => p.id === item.product_id);
+            if (product) {
+              updatedProductName = shouldApplyPromotion ?
+                `${product.name} (${promotion.name})` :
+                `${product.name} (${promotion.name} - Requiere ${minQuantityRequired} unid.)`;
+            }
+
+            // Actualizar datos de promoción
+            updatedPromotionData = {
+              ...item.promotion_data,
+              has_promotion: shouldApplyPromotion,
+              final_price: updatedUnitPrice,
+              total_original: item.product_sale_price * finalQuantity,
+              total_final: updatedUnitPrice * finalQuantity,
+              total_savings: shouldApplyPromotion ? (item.product_sale_price - updatedUnitPrice) * finalQuantity : 0,
+              discount_amount: shouldApplyPromotion ? (item.product_sale_price - updatedUnitPrice) : 0
+            };
+          }
+        }
+
         return {
           ...item,
-          quantity: finalQuantity
+          quantity: finalQuantity,
+          unit_price: updatedUnitPrice,
+          product_name: updatedProductName,
+          promotion_data: updatedPromotionData
         };
       }
       return item;
@@ -283,6 +422,19 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
 
   const removeItem = (itemId: string) => {
     setItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handlePromotionChange = (itemId: string, promotionData: PromotionPriceResult) => {
+    setItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          promotion_data: promotionData,
+          unit_price: promotionData.has_promotion ? promotionData.final_price : item.unit_price
+        };
+      }
+      return item;
+    }));
   };
 
   const handleSubmit = async () => {
@@ -462,9 +614,37 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                 </div>
               </div>
 
-              {/* Lista de productos disponibles */}
+              {/* Lista de productos y promociones disponibles */}
               {searchTerm && (
-                <div className="max-h-32 overflow-y-auto border rounded-lg">
+                <div className="max-h-40 overflow-y-auto border rounded-lg">
+                  {/* Promociones activas */}
+                  {availablePromotions.map((promotion) => (
+                    <div
+                      key={`promo-${promotion.id}`}
+                      className="p-2 hover:bg-green-50 cursor-pointer border-b last:border-b-0 bg-green-25"
+                      onClick={() => addPromotion(promotion)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Tag className="h-3 w-3 text-green-600" />
+                            <p className="font-medium text-sm text-green-800">{promotion.name}</p>
+                          </div>
+                          <p className="text-xs text-green-600">
+                            {promotion.product_name} • {promotion.discount_display}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Precio final: ${promotion.final_price?.toFixed(2)}
+                          </p>
+                        </div>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-green-200 text-green-600">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Productos normales */}
                   {availableProducts.map((product) => {
                     // Verificar si el producto ya tiene una promoción activa en el carrito
                     const hasPromotionInCart = items.some(item =>
@@ -512,8 +692,15 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                     );
                   })}
 
+                  {/* Mensaje cuando no hay resultados */}
+                  {availablePromotions.length === 0 && availableProducts.length === 0 && (
+                    <div className="p-4 text-center text-gray-500 text-sm">
+                      No se encontraron productos ni promociones
+                    </div>
+                  )}
+
                   {/* Mensaje informativo */}
-                  {availableProducts.length > 0 && (
+                  {searchTerm && availableProducts.length > 0 && (
                     <div className="p-2 bg-blue-50 border-t border-blue-200">
                       <p className="text-xs text-blue-700">
                         💡 <strong>Tip:</strong> Si un producto tiene promoción activa, usa "Sin promo" para agregarlo con precio normal
@@ -537,7 +724,36 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                         {/* Nombre del producto */}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{item.product_name}</p>
-                          <p className="text-xs text-muted-foreground">Stock: {item.available_stock}</p>
+                          <div className="text-xs text-muted-foreground">
+                            <div>Stock: {item.available_stock}</div>
+                            {/* Mostrar límites de promoción si aplica */}
+                            {item.promotion_data && item.promotion_data.promotion_id && (() => {
+                              const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+                              if (promotion) {
+                                const limits = [];
+
+                                // Mostrar límite de ventas
+                                if (promotion.max_uses) {
+                                  const ventasDisponibles = promotion.max_uses - promotion.current_uses;
+                                  limits.push(`${ventasDisponibles} ventas disponibles`);
+                                }
+
+                                // Mostrar límite de cantidad por venta
+                                if (promotion.max_quantity) {
+                                  limits.push(`máx ${promotion.max_quantity} por venta`);
+                                }
+
+                                if (limits.length > 0) {
+                                  return (
+                                    <div className="text-orange-600">
+                                      Promo: {limits.join(' • ')}
+                                    </div>
+                                  );
+                                }
+                              }
+                              return null;
+                            })()}
+                          </div>
                         </div>
 
                         {/* Cantidad */}
@@ -606,14 +822,27 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                           </Button>
                         </div>
 
-                        {/* Precio unitario */}
-                        <div className="text-xs text-muted-foreground w-12 text-right">
-                          ${(item.unit_price || 0).toFixed(2)}
+                        {/* Precio unitario con promociones */}
+                        <div className="w-20 text-right">
+                          <PromotionPriceSimple
+                            productId={item.product_id}
+                            quantity={item.quantity}
+                            originalPrice={item.product_sale_price}
+                            onPriceChange={(promotionData) => handlePromotionChange(item.id, promotionData)}
+                            disablePromotions={item.disable_promotions || false}
+                          />
                         </div>
 
                         {/* Total */}
                         <div className="font-medium text-sm w-16 text-right">
-                          ${((item.unit_price || 0) * item.quantity).toFixed(2)}
+                          ${(() => {
+                            if (item.promotion_data && item.promotion_data.has_promotion) {
+                              return item.promotion_data.total_final.toFixed(2);
+                            } else {
+                              const price = item.unit_price || item.product_sale_price;
+                              return (price * item.quantity).toFixed(2);
+                            }
+                          })()}
                         </div>
 
                         {/* Botón eliminar */}

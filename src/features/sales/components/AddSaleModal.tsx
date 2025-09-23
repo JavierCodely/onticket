@@ -26,6 +26,12 @@ import type { CreateSaleData, CreateSaleItem, PaymentMethod } from '../types';
 import { PAYMENT_METHOD_CONFIG } from '../types';
 import { PromotionPriceSimple } from './PromotionPriceDisplay';
 import type { PromotionPriceResult, PromotionWithDetails } from '@/core/types/database';
+
+// Extender PromotionPriceResult para incluir nuevos campos
+interface ExtendedPromotionPriceResult extends PromotionPriceResult {
+  min_quantity_required?: number;
+  quantity_meets_minimum?: boolean;
+}
 import { useActivePromotions } from '@/features/promotions/hooks/usePromotions';
 
 interface AddSaleModalProps {
@@ -41,7 +47,7 @@ interface SaleItemForm extends CreateSaleItem {
   available_stock: number;
   product_sale_price: number;
   product_cost_price: number;
-  promotion_data?: PromotionPriceResult | null;
+  promotion_data?: ExtendedPromotionPriceResult | null;
   disable_promotions?: boolean;
 }
 
@@ -339,21 +345,29 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         if (existingItem) {
           updateItemQuantity(existingItem.id, existingItem.quantity + 1);
         } else {
-          // Para admin: usar precio de compra, para otros: usar precio de promoción
+          // Para admin: usar precio de compra, para otros: verificar cantidad mínima
           const basePrice = isAdminSale ? product.cost_price : product.sale_price;
-          const finalPrice = isAdminSale ? product.cost_price : (promotion.final_price || product.sale_price);
+
+          // Verificar si se cumple la cantidad mínima para aplicar la promoción
+          const minQuantityRequired = promotion.min_quantity || 1;
+          const shouldApplyPromotion = !isAdminSale && (1 >= minQuantityRequired);
+
+          const finalPrice = isAdminSale ? product.cost_price :
+            (shouldApplyPromotion ? (promotion.final_price || product.sale_price) : product.sale_price);
 
           const newItem: SaleItemForm = {
             id: Math.random().toString(36).substr(2, 9),
             product_id: product.id,
-            product_name: `${product.name} (${promotion.name})${isAdminSale ? ' - Admin' : ''}`,
+            product_name: shouldApplyPromotion ?
+              `${product.name} (${promotion.name})${isAdminSale ? ' - Admin' : ''}` :
+              `${product.name} (${promotion.name} - Requiere ${minQuantityRequired} unid.)${isAdminSale ? ' - Admin' : ''}`,
             quantity: 1,
             unit_price: finalPrice,
             product_sale_price: product.sale_price,
             product_cost_price: product.cost_price,
             available_stock: product.available_stock,
             promotion_data: {
-              has_promotion: !isAdminSale, // Admin no usa promociones
+              has_promotion: shouldApplyPromotion, // Solo si cumple cantidad mínima
               promotion_id: promotion.id,
               promotion_name: promotion.name,
               promotion_description: promotion.description,
@@ -361,9 +375,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
               final_price: finalPrice,
               total_original: basePrice,
               total_final: finalPrice,
-              total_savings: isAdminSale ? 0 : basePrice - finalPrice,
-              discount_amount: isAdminSale ? 0 : basePrice - finalPrice,
-              discount_percentage: isAdminSale ? 0 : (promotion.discount_percentage || 0)
+              total_savings: shouldApplyPromotion ? (basePrice - finalPrice) : 0,
+              discount_amount: shouldApplyPromotion ? (basePrice - finalPrice) : 0,
+              discount_percentage: shouldApplyPromotion ? (promotion.discount_percentage || 0) : 0,
+              min_quantity_required: minQuantityRequired,
+              quantity_meets_minimum: shouldApplyPromotion
             }
           };
           setItems(prev => [newItem, ...prev]);
@@ -431,9 +447,53 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           }
         }
 
+        // Recalcular promoción basándose en la nueva cantidad
+        let updatedPromotionData = item.promotion_data;
+        let updatedUnitPrice = item.unit_price;
+        let updatedProductName = item.product_name;
+
+        if (item.promotion_data && item.promotion_data.promotion_id) {
+          const promotion = activePromotions.find(p => p.id === item.promotion_data.promotion_id);
+          if (promotion) {
+            const minQuantityRequired = promotion.min_quantity || 1;
+            const meetsMinimum = finalQuantity >= minQuantityRequired;
+            const shouldApplyPromotion = !isAdminSale && meetsMinimum;
+
+            // Actualizar precio según si se cumple la cantidad mínima
+            const basePrice = isAdminSale ? item.product_cost_price : item.product_sale_price;
+            updatedUnitPrice = shouldApplyPromotion ?
+              (promotion.final_price || item.product_sale_price) :
+              item.product_sale_price;
+
+            // Actualizar nombre del producto
+            const product = products.find(p => p.id === item.product_id);
+            if (product) {
+              updatedProductName = shouldApplyPromotion ?
+                `${product.name} (${promotion.name})${isAdminSale ? ' - Admin' : ''}` :
+                `${product.name} (${promotion.name} - Requiere ${minQuantityRequired} unid.)${isAdminSale ? ' - Admin' : ''}`;
+            }
+
+            // Actualizar datos de promoción
+            updatedPromotionData = {
+              ...item.promotion_data,
+              has_promotion: shouldApplyPromotion,
+              final_price: updatedUnitPrice,
+              total_original: basePrice * finalQuantity,
+              total_final: updatedUnitPrice * finalQuantity,
+              total_savings: shouldApplyPromotion ? (basePrice - updatedUnitPrice) * finalQuantity : 0,
+              discount_amount: shouldApplyPromotion ? (basePrice - updatedUnitPrice) : 0,
+              min_quantity_required: minQuantityRequired,
+              quantity_meets_minimum: meetsMinimum
+            };
+          }
+        }
+
         return {
           ...item,
-          quantity: finalQuantity
+          quantity: finalQuantity,
+          unit_price: updatedUnitPrice,
+          product_name: updatedProductName,
+          promotion_data: updatedPromotionData
         };
       }
       return item;
@@ -445,7 +505,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     setItems(prev => prev.filter(item => item.id !== itemId));
   };
 
-  const handlePromotionChange = (itemId: string, promotionData: PromotionPriceResult) => {
+  const handlePromotionChange = (itemId: string, promotionData: ExtendedPromotionPriceResult) => {
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
         return {
@@ -718,6 +778,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                         </p>
                         <p className="text-xs text-gray-500">
                           Precio final: ${promotion.final_price?.toFixed(2)}
+                          {promotion.min_quantity && promotion.min_quantity > 1 && (
+                            <span className="text-amber-600 font-medium ml-2">
+                              • Mín: {promotion.min_quantity} unid.
+                            </span>
+                          )}
                         </p>
                       </div>
                       <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-green-200 text-green-600">
@@ -812,6 +877,35 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                         <p className="font-medium text-sm truncate">{item.product_name}</p>
                         <div className="text-xs text-muted-foreground">
                           <div>Stock: {item.available_stock}</div>
+
+                          {/* Mostrar estado de cantidad mínima de promoción */}
+                          {item.promotion_data && item.promotion_data.promotion_id && (() => {
+                            const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+                            if (promotion) {
+                              const minQuantityRequired = promotion.min_quantity || 1;
+                              const meetsMinimum = item.quantity >= minQuantityRequired;
+
+                              if (minQuantityRequired > 1) {
+                                return (
+                                  <div className={`flex items-center gap-1 ${meetsMinimum ? 'text-green-600' : 'text-amber-600'}`}>
+                                    {meetsMinimum ? (
+                                      <>
+                                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                                        <span>Promoción activa</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="inline-block w-2 h-2 bg-amber-500 rounded-full"></span>
+                                        <span>Requiere {minQuantityRequired} unid. para promoción</span>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              }
+                            }
+                            return null;
+                          })()}
+
                           {/* Mostrar límites de promoción si aplica */}
                           {item.promotion_data && item.promotion_data.promotion_id && (() => {
                             const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
@@ -832,7 +926,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                               if (limits.length > 0) {
                                 return (
                                   <div className="text-orange-600">
-                                    Promo: {limits.join(' • ')}
+                                    Límites: {limits.join(' • ')}
                                   </div>
                                 );
                               }

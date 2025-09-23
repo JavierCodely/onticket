@@ -1,6 +1,62 @@
 export type PaymentMethod = 'cash' | 'transfer' | 'credit' | 'debit';
 export type SaleStatus = 'completed' | 'cancelled' | 'refunded';
 
+// Tipos para los detalles de la venta
+export interface SaleManualDiscount {
+  applied: boolean;
+  amount: number;
+  reason?: string;
+  applied_by?: string;
+}
+
+export interface SalePromotionDetail {
+  promotion_id: string;
+  promotion_name: string;
+  promotion_type: 'percentage' | 'fixed_amount' | 'fixed_price' | 'combo';
+  discount_amount: number;
+  original_price: number;
+  final_price: number;
+  products_affected?: Array<{
+    product_id: string;
+    product_name: string;
+    quantity: number;
+  }>;
+}
+
+export interface SaleComboDetail {
+  combo_name: string;
+  combo_items: Array<{
+    product_id: string;
+    product_name: string;
+    quantity: number;
+  }>;
+  combo_price: number;
+  individual_price: number;
+  savings: number;
+}
+
+export interface SaleSpecialConditions {
+  employee_sale?: boolean;
+  vip_customer?: boolean;
+  special_event?: string;
+}
+
+export interface SalePaymentExtraDetails {
+  tip_included?: boolean;
+  tip_amount?: number;
+  service_charge?: number;
+}
+
+export interface SaleDetails {
+  discounts?: {
+    manual_discount?: SaleManualDiscount;
+  };
+  promotions?: SalePromotionDetail[];
+  combos?: SaleComboDetail[];
+  special_conditions?: SaleSpecialConditions;
+  payment_details?: SalePaymentExtraDetails;
+}
+
 export interface Sale {
   id: string;
   club_id: string;
@@ -14,6 +70,7 @@ export interface Sale {
   total_amount: number;
   payment_method: PaymentMethod;
   payment_details?: Record<string, any>;
+  details?: SaleDetails;
   status: SaleStatus;
   notes?: string;
   refund_reason?: string;
@@ -57,6 +114,7 @@ export interface CreateSaleData {
   payment_details?: Record<string, any>;
   discount_amount?: number;
   notes?: string;
+  details?: SaleDetails;
   promotions_used?: Array<{promotion_id: string, quantity: number}>;
 }
 
@@ -67,6 +125,7 @@ export interface UpdateSaleData {
   payment_details?: Record<string, any>;
   discount_amount?: number;
   notes?: string;
+  details?: SaleDetails;
   status?: SaleStatus;
   refund_reason?: string;
 }

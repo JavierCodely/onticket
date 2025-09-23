@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, User, Calendar, CreditCard, FileText, Package, DollarSign, Hash, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, User, Calendar, CreditCard, FileText, Package, DollarSign, Hash, MapPin, Tag, Receipt, Gift, Percent, Star, Info, TrendingDown } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import {
   Dialog,
@@ -19,6 +19,8 @@ import {
   TableRow,
 } from '@/shared/components/ui/table';
 import { PAYMENT_METHOD_CONFIG, SALE_STATUS_CONFIG, type SaleWithDetails } from '../types';
+import { useProducts } from '@/features/products/hooks/useProducts';
+import { supabase } from '@/core/config/supabase';
 
 interface EmployeeSaleDetailsModalProps {
   isOpen: boolean;
@@ -31,6 +33,8 @@ export const EmployeeSaleDetailsModal: React.FC<EmployeeSaleDetailsModalProps> =
   onClose,
   sale
 }) => {
+  const { products } = useProducts();
+
   if (!sale) return null;
 
   const formatCurrency = (amount: number) => {
@@ -52,6 +56,178 @@ export const EmployeeSaleDetailsModal: React.FC<EmployeeSaleDetailsModalProps> =
   };
 
   const items = Array.isArray(sale.items) ? sale.items : [];
+
+  // Función para detectar si un item fue vendido con promoción
+  const getPromotionStatus = (item: any) => {
+    const product = products.find(p => p.id === item.product_id);
+    if (!product) return { hasPromotion: false, savings: 0, originalPrice: 0 };
+
+    // Comparar precio de venta del item con precio actual del producto
+    const currentPrice = product.sale_price;
+    const soldPrice = item.unit_price;
+
+    // Si el precio de venta es menor al precio actual, probablemente fue con promoción
+    const hasPromotion = soldPrice < currentPrice;
+    const savings = hasPromotion ? (currentPrice - soldPrice) * item.quantity : 0;
+
+    return {
+      hasPromotion,
+      savings,
+      originalPrice: currentPrice,
+      discountPercentage: hasPromotion ? ((currentPrice - soldPrice) / currentPrice) * 100 : 0
+    };
+  };
+
+  // Función para renderizar los detalles adicionales de la venta
+  const renderSaleDetails = () => {
+    if (!sale.details) return null;
+
+    const hasDetails =
+      sale.details.discounts?.manual_discount?.applied ||
+      (sale.details.promotions && sale.details.promotions.length > 0) ||
+      (sale.details.combos && sale.details.combos.length > 0) ||
+      sale.details.special_conditions ||
+      sale.details.payment_details;
+
+    if (!hasDetails) return null;
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Receipt className="h-5 w-5" />
+            Detalles de la Venta
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Descuentos manuales */}
+          {sale.details.discounts?.manual_discount?.applied && (
+            <div className="bg-orange-50 p-3 rounded-md border border-orange-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Percent className="h-4 w-4 text-orange-600" />
+                <span className="font-medium text-orange-800">Descuento Manual</span>
+              </div>
+              <div className="text-sm space-y-1">
+                <p><strong>Monto:</strong> {formatCurrency(sale.details.discounts.manual_discount.amount)}</p>
+                {sale.details.discounts.manual_discount.reason && (
+                  <p><strong>Razón:</strong> {sale.details.discounts.manual_discount.reason}</p>
+                )}
+                {sale.details.discounts.manual_discount.applied_by && (
+                  <p><strong>Aplicado por:</strong> {sale.details.discounts.manual_discount.applied_by}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Promociones aplicadas */}
+          {sale.details.promotions && sale.details.promotions.length > 0 && (
+            <div className="bg-green-50 p-3 rounded-md border border-green-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Gift className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-800">Promociones Aplicadas</span>
+              </div>
+              <div className="space-y-2">
+                {sale.details.promotions.map((promo, index) => (
+                  <div key={index} className="text-sm bg-white p-2 rounded border">
+                    <p><strong>{promo.promotion_name}</strong></p>
+                    <p>Tipo: <span className="capitalize">{promo.promotion_type.replace('_', ' ')}</span></p>
+                    <p>Precio original: {formatCurrency(promo.original_price)}</p>
+                    <p>Precio final: {formatCurrency(promo.final_price)}</p>
+                    <p className="text-green-600 font-medium">
+                      Ahorro: {formatCurrency(promo.discount_amount)}
+                    </p>
+                    {promo.products_affected && promo.products_affected.length > 0 && (
+                      <div className="mt-1">
+                        <p className="text-xs text-gray-600">Productos afectados:</p>
+                        <ul className="text-xs list-disc list-inside ml-2">
+                          {promo.products_affected.map((product, prodIndex) => (
+                            <li key={prodIndex}>
+                              {product.product_name} (x{product.quantity})
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Combos utilizados */}
+          {sale.details.combos && sale.details.combos.length > 0 && (
+            <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Package className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-blue-800">Combos Utilizados</span>
+              </div>
+              <div className="space-y-2">
+                {sale.details.combos.map((combo, index) => (
+                  <div key={index} className="text-sm bg-white p-2 rounded border">
+                    <p><strong>{combo.combo_name}</strong></p>
+                    <p>Precio combo: {formatCurrency(combo.combo_price)}</p>
+                    <p>Precio individual: {formatCurrency(combo.individual_price)}</p>
+                    <p className="text-blue-600 font-medium">
+                      Ahorro: {formatCurrency(combo.savings)}
+                    </p>
+                    <div className="mt-1">
+                      <p className="text-xs text-gray-600">Items del combo:</p>
+                      <ul className="text-xs list-disc list-inside ml-2">
+                        {combo.combo_items.map((item, itemIndex) => (
+                          <li key={itemIndex}>
+                            {item.product_name} (x{item.quantity})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Condiciones especiales */}
+          {sale.details.special_conditions && (
+            <div className="bg-purple-50 p-3 rounded-md border border-purple-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="h-4 w-4 text-purple-600" />
+                <span className="font-medium text-purple-800">Condiciones Especiales</span>
+              </div>
+              <div className="text-sm space-y-1">
+                {sale.details.special_conditions.employee_sale && (
+                  <p>✓ Venta de empleado</p>
+                )}
+                {sale.details.special_conditions.vip_customer && (
+                  <p>✓ Cliente VIP</p>
+                )}
+                {sale.details.special_conditions.special_event && (
+                  <p>✓ Evento especial: {sale.details.special_conditions.special_event}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Detalles adicionales de pago */}
+          {sale.details.payment_details && (
+            <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <CreditCard className="h-4 w-4 text-gray-600" />
+                <span className="font-medium text-gray-800">Detalles Adicionales de Pago</span>
+              </div>
+              <div className="text-sm space-y-1">
+                {sale.details.payment_details.tip_included && (
+                  <p>Propina incluida: {formatCurrency(sale.details.payment_details.tip_amount || 0)}</p>
+                )}
+                {sale.details.payment_details.service_charge && (
+                  <p>Cargo por servicio: {formatCurrency(sale.details.payment_details.service_charge)}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -186,6 +362,9 @@ export const EmployeeSaleDetailsModal: React.FC<EmployeeSaleDetailsModalProps> =
                 </CardContent>
               </Card>
 
+              {/* Detalles adicionales de la venta */}
+              {renderSaleDetails()}
+
             </div>
 
             {/* Columna derecha - Productos */}
@@ -214,37 +393,73 @@ export const EmployeeSaleDetailsModal: React.FC<EmployeeSaleDetailsModalProps> =
                             <TableHead className="text-center font-semibold w-24">Cantidad</TableHead>
                             <TableHead className="text-right font-semibold w-32">Precio Unit.</TableHead>
                             <TableHead className="text-right font-semibold w-32">Total</TableHead>
+                            <TableHead className="text-center font-semibold w-32">Promoción</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {items.map((item: any, index: number) => (
-                            <TableRow key={item.id || index} className="hover:bg-slate-50">
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium text-base">{item.product_name}</p>
-                                  {item.product_sku && (
-                                    <p className="text-sm text-gray-500">SKU: {item.product_sku}</p>
-                                  )}
-                                  {item.product_category && (
-                                    <Badge variant="secondary" className="text-xs mt-1">
-                                      {item.product_category}
+                          {items.map((item: any, index: number) => {
+                            const promotionStatus = getPromotionStatus(item);
+                            return (
+                              <TableRow key={item.id || index} className="hover:bg-slate-50">
+                                <TableCell>
+                                  <div>
+                                    <p className="font-medium text-base">{item.product_name}</p>
+                                    {item.product_sku && (
+                                      <p className="text-sm text-gray-500">SKU: {item.product_sku}</p>
+                                    )}
+                                    {item.product_category && (
+                                      <Badge variant="secondary" className="text-xs mt-1">
+                                        {item.product_category}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                    {item.quantity}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right font-mono">
+                                  <div>
+                                    {formatCurrency(item.unit_price)}
+                                    {promotionStatus.hasPromotion && (
+                                      <p className="text-xs text-gray-500 line-through">
+                                        {formatCurrency(promotionStatus.originalPrice)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right font-mono font-semibold">
+                                  <div>
+                                    {formatCurrency(item.line_total)}
+                                    {promotionStatus.hasPromotion && promotionStatus.savings > 0 && (
+                                      <p className="text-xs text-green-600">
+                                        Ahorro: {formatCurrency(promotionStatus.savings)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {promotionStatus.hasPromotion ? (
+                                    <div className="flex flex-col items-center gap-1">
+                                      <Badge variant="default" className="bg-green-600 text-white text-xs">
+                                        <Tag className="h-3 w-3 mr-1" />
+                                        Con promoción
+                                      </Badge>
+                                      <span className="text-xs text-green-600 font-medium">
+                                        -{(promotionStatus.discountPercentage || 0).toFixed(0)}%
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <Badge variant="outline" className="text-gray-600 text-xs">
+                                      <DollarSign className="h-3 w-3 mr-1" />
+                                      Precio normal
                                     </Badge>
                                   )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                                  {item.quantity}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-right font-mono">
-                                {formatCurrency(item.unit_price)}
-                              </TableCell>
-                              <TableCell className="text-right font-mono font-semibold">
-                                {formatCurrency(item.line_total)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>

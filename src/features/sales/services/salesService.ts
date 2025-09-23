@@ -86,7 +86,8 @@ export class SalesService {
         p_payment_method: saleData.payment_method,
         p_payment_details: saleData.payment_details || null,
         p_discount_amount: saleData.discount_amount || 0,
-        p_notes: saleData.notes || null
+        p_notes: saleData.notes || null,
+        p_details: saleData.details || null
       });
 
       const { data, error } = await supabase
@@ -97,7 +98,8 @@ export class SalesService {
           p_payment_method: saleData.payment_method,
           p_payment_details: saleData.payment_details || null,
           p_discount_amount: saleData.discount_amount || 0,
-          p_notes: saleData.notes || null
+          p_notes: saleData.notes || null,
+          p_details: saleData.details || null
         });
 
       if (error) {
@@ -153,6 +155,7 @@ export class SalesService {
           p_payment_details: updateData.payment_details || null,
           p_discount_amount: updateData.discount_amount ?? null,
           p_notes: updateData.notes || null,
+          p_details: updateData.details || null,
           p_status: updateData.status || null,
           p_refund_reason: updateData.refund_reason || null
         });
