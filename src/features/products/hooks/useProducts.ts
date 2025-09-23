@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/core/config/supabase';
 import type {
   ProductWithStock,
@@ -13,6 +13,7 @@ export const useProducts = () => {
   const [products, setProducts] = useState<ProductWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const subscriptionRef = useRef<any>(null);
 
   // Obtener todos los productos con stock
   const fetchProducts = useCallback(async () => {
@@ -243,10 +244,77 @@ export const useProducts = () => {
     };
   }, [products]);
 
-  // Cargar productos al montar el componente
+  // Función para configurar suscripción en tiempo real
+  const setupRealtimeSubscription = useCallback(() => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+    }
+
+    subscriptionRef.current = supabase
+      .channel('products-and-stock-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
+        },
+        async (payload) => {
+          console.log('Product change detected:', payload);
+          // Recargar productos cuando hay cambios
+          try {
+            const { data, error: fetchError } = await supabase
+              .from('products_with_stock')
+              .select('*')
+              .order('name');
+
+            if (!fetchError && data) {
+              setProducts(data);
+            }
+          } catch (err) {
+            console.error('Error updating products after realtime change:', err);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'product_stock'
+        },
+        async (payload) => {
+          console.log('Product stock change detected:', payload);
+          // Recargar productos cuando cambia el stock
+          try {
+            const { data, error: fetchError } = await supabase
+              .from('products_with_stock')
+              .select('*')
+              .order('name');
+
+            if (!fetchError && data) {
+              setProducts(data);
+            }
+          } catch (err) {
+            console.error('Error updating products after stock change:', err);
+          }
+        }
+      )
+      .subscribe();
+  }, []);
+
+  // Cargar productos al montar el componente y configurar real-time
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    setupRealtimeSubscription();
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+    };
+  }, [fetchProducts, setupRealtimeSubscription]);
 
   return {
     // Estado

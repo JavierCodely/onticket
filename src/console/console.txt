@@ -1,0 +1,168 @@
+DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 0
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:173 DEBUG - Total products: 0
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:173 DEBUG - Total products: 0
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:173 DEBUG - Total products: 0
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:173 DEBUG - Total products: 0
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:173 DEBUG - Total products: 0
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: 
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: c
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true
+AddSaleModal.tsx:173 DEBUG - Total products: 4
+AddSaleModal.tsx:174 DEBUG - Search term: c
+AddSaleModal.tsx:175 DEBUG - Available products: 0
+AddSaleModal.tsx:179 DEBUG - First product: {id: '5bac0525-895c-439d-a53c-1d9a8c26212c', club_id: 'a6cd26b7-3f7e-47dc-84bf-fd311acfa699', name: 'cocacola', description: null, category: 'bebidas_sin_alcohol', …}
+AddSaleModal.tsx:180 DEBUG - Product status: active
+AddSaleModal.tsx:181 DEBUG - Product available_stock: 0
+AddSaleModal.tsx:182 DEBUG - Product name: cocacola
+AddSaleModal.tsx:188 DEBUG - isActive: true
+AddSaleModal.tsx:189 DEBUG - hasStock: false
+AddSaleModal.tsx:190 DEBUG - matchesSearch: true

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, MoreHorizontal, Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal, Edit, Trash2, ToggleLeft, ToggleRight, Calendar } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -28,6 +28,20 @@ export function PromotionsPage() {
   const { promotions, loading, error, togglePromotionStatus, deletePromotion } = usePromotions();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Función para manejar el cambio de fecha desde
+  const handleStartDateChange = (date: string) => {
+    setStartDate(date);
+    // Siempre auto-completar fecha hasta con la misma fecha cuando se selecciona fecha desde
+    if (date) {
+      setEndDate(date);
+    } else {
+      // Si se borra la fecha desde, también borrar fecha hasta
+      setEndDate('');
+    }
+  };
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState<PromotionWithDetails | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
@@ -41,7 +55,12 @@ export function PromotionsPage() {
 
     const matchesStatus = statusFilter === 'all' || promotion.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    // Filtro por fecha de creación
+    const createdAt = new Date(promotion.created_at);
+    const matchesStartDate = !startDate || createdAt >= new Date(startDate);
+    const matchesEndDate = !endDate || createdAt <= new Date(endDate + 'T23:59:59');
+
+    return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate;
   });
 
   const handleToggleStatus = async (promotion: PromotionWithDetails) => {
@@ -174,7 +193,7 @@ export function PromotionsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
@@ -204,6 +223,39 @@ export function PromotionsPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Filtros por fecha de creación */}
+        <div className="flex gap-2 items-center">
+          <Calendar className="h-4 w-4 text-gray-400" />
+          <Input
+            type="date"
+            placeholder="Fecha desde"
+            value={startDate}
+            onChange={(e) => handleStartDateChange(e.target.value)}
+            className="w-auto"
+          />
+          <span className="text-gray-400">-</span>
+          <Input
+            type="date"
+            placeholder="Fecha hasta"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-auto"
+          />
+          {(startDate || endDate) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Limpiar
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Promotions Table */}
@@ -237,6 +289,7 @@ export function PromotionsPage() {
                   <TableHead>Descuento</TableHead>
                   <TableHead>Precio Final</TableHead>
                   <TableHead>Usos</TableHead>
+                  <TableHead>Fecha Creación</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="w-[70px]">Acciones</TableHead>
                 </TableRow>
@@ -244,7 +297,7 @@ export function PromotionsPage() {
               <TableBody>
                 {filteredPromotions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {promotions.length === 0
                         ? "No hay promociones creadas. ¡Crea tu primera promoción!"
                         : "No se encontraron promociones con los filtros aplicados"
@@ -302,6 +355,22 @@ export function PromotionsPage() {
                         <div>
                           {promotion.current_uses}
                           {promotion.max_uses && ` / ${promotion.max_uses}`}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="text-sm">
+                          {new Date(promotion.created_at).toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(promotion.created_at).toLocaleTimeString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </div>
                       </TableCell>
 

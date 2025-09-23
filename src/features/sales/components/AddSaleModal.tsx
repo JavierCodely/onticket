@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Minus, Search, X, Tag } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Minus, Search, X, Tag, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -57,7 +57,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   onSave,
   employees
 }) => {
-  const { products } = useProducts();
+  const { products, fetchProducts } = useProducts();
   const { activePromotions, refetch: refetchPromotions } = useActivePromotions();
 
   const [formData, setFormData] = useState({
@@ -73,20 +73,129 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   const [items, setItems] = useState<SaleItemForm[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stockConflicts, setStockConflicts] = useState<{productId: string, productName: string, requested: number, available: number}[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const availableProducts = products.filter(product =>
-    product.status === 'active' &&
-    product.available_stock > 0 &&
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Función para refrescar productos manualmente
+  const handleRefreshProducts = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchProducts();
+      await refetchPromotions();
+    } catch (error) {
+      console.error('Error refreshing products:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
-  // Filtrar promociones que coincidan con la búsqueda
-  const availablePromotions = activePromotions.filter(promotion =>
-    promotion.status === 'active' &&
-    promotion.is_available &&
-    (promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     (promotion.product_name && promotion.product_name.toLowerCase().includes(searchTerm.toLowerCase())))
-  );
+  // Función simplificada - por ahora el usuario debe presionar "Crear Venta" después de resolver conflictos
+  const processSale = async () => {
+    if (items.length === 0) {
+      alert('No quedan productos en el carrito para crear la venta.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Recolectar promociones usadas (1 por venta, no por cantidad de productos)
+      const promotionsUsed: Array<{promotion_id: string, quantity: number}> = [];
+      items.forEach(item => {
+        if (item.promotion_data && item.promotion_data.promotion_id && item.promotion_data.has_promotion) {
+          const existingPromo = promotionsUsed.find(p => p.promotion_id === item.promotion_data?.promotion_id);
+          if (!existingPromo) {
+            // Solo agregar 1 uso por promoción, sin importar la cantidad de productos
+            promotionsUsed.push({
+              promotion_id: item.promotion_data.promotion_id,
+              quantity: 1 // Siempre 1 porque es por VENTA, no por cantidad
+            });
+          }
+          // Si ya existe, no sumar más porque es la misma venta
+        }
+      });
+
+      const saleData: CreateSaleData = {
+        employee_user_id: formData.employee_user_id || undefined,
+        employee_name: formData.employee_name,
+        items: items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price
+        })),
+        payment_method: formData.payment_method,
+        discount_amount: formData.discount_amount,
+        notes: formData.notes || undefined,
+        promotions_used: promotionsUsed.length > 0 ? promotionsUsed : undefined
+      };
+
+      const createdSale = await onSave(saleData);
+
+      if (createdSale) {
+        // Reset form
+        setItems([]);
+        setFormData({
+          employee_user_id: '',
+          employee_name: '',
+          payment_method: 'cash',
+          discount_amount: 0,
+          notes: ''
+        });
+        setSelectedEmployeeRole('');
+        setSearchTerm('');
+        onClose();
+      }
+    } catch (err) {
+      console.error('Error creating sale:', err);
+      alert(err instanceof Error ? err.message : 'Error al crear la venta');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // TODO: Agregar auto-continue después de que funcione básicamente
+  // useEffect(() => {
+  //   if (stockConflicts.length === 0 && items.length > 0 && isSubmitting) {
+  //     console.log('Conflictos resueltos, continuando con la creación de venta...');
+  //     setTimeout(() => continueWithSaleCreation(), 500);
+  //   }
+  // }, [stockConflicts, items, isSubmitting]);
+
+  const availableProducts = searchTerm ? products.filter(product => {
+    const isActive = product.status === 'active';
+    const hasStock = product.available_stock > 0;
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return isActive && hasStock && matchesSearch;
+  }) : [];
+
+
+  // Filtrar promociones que coincidan con la búsqueda Y que tengan stock disponible
+  const availablePromotions = searchTerm ? activePromotions.filter(promotion => {
+    const matchesSearch = promotion.status === 'active' &&
+      promotion.is_available &&
+      (promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       (promotion.product_name && promotion.product_name.toLowerCase().includes(searchTerm.toLowerCase())));
+
+    if (!matchesSearch) return false;
+
+    // Verificar stock para promociones individuales
+    if (promotion.promotion_type !== 'combo' && promotion.product_id) {
+      const product = products.find(p => p.id === promotion.product_id);
+      return product && product.available_stock > 0;
+    }
+
+    // Para combos, verificar que todos los productos tengan stock
+    if (promotion.promotion_type === 'combo' && promotion.combo_items) {
+      const comboItems = Array.isArray(promotion.combo_items) ? promotion.combo_items : [];
+      return comboItems.every(item => {
+        const product = products.find(p => p.id === item.product_id);
+        return product && product.available_stock >= (item.quantity || 1);
+      });
+    }
+
+    return true; // Para otros tipos de promociones
+  }) : [];
 
   // Determinar si usar precio de costo (admin) o precio de venta (empleado)
   const isAdminSale = selectedEmployeeRole === 'admin';
@@ -539,49 +648,48 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       return;
     }
 
+    // Auto-refresh para obtener stock actualizado antes de validar
+    console.log('Auto-refresh: Actualizando stock antes de confirmar venta...');
     try {
-      setIsSubmitting(true);
+      await fetchProducts();
+      await refetchPromotions();
+    } catch (error) {
+      console.error('Error en auto-refresh:', error);
+      alert('Error al actualizar información de productos. Intente nuevamente.');
+      return;
+    }
 
-      // Recolectar promociones usadas (1 por venta, no por cantidad de productos)
-      const promotionsUsed: Array<{promotion_id: string, quantity: number}> = [];
+    // Validar stock antes de proceder
+    const validateStockAvailability = () => {
+      const conflicts: {productId: string, productName: string, requested: number, available: number}[] = [];
       items.forEach(item => {
-        if (item.promotion_data && item.promotion_data.promotion_id && item.promotion_data.has_promotion) {
-          const existingPromo = promotionsUsed.find(p => p.promotion_id === item.promotion_data?.promotion_id);
-          if (!existingPromo) {
-            // Solo agregar 1 uso por promoción, sin importar la cantidad de productos
-            promotionsUsed.push({
-              promotion_id: item.promotion_data.promotion_id,
-              quantity: 1 // Siempre 1 porque es por VENTA, no por cantidad
-            });
-          }
-          // Si ya existe, no sumar más porque es la misma venta
+        const currentProduct = products.find(p => p.id === item.product_id);
+        if (!currentProduct || currentProduct.available_stock < item.quantity) {
+          const availableStock = currentProduct?.available_stock || 0;
+          conflicts.push({
+            productId: item.product_id,
+            productName: item.product_name,
+            requested: item.quantity,
+            available: availableStock
+          });
         }
       });
+      return conflicts;
+    };
 
-      const saleData: CreateSaleData = {
-        employee_user_id: formData.employee_user_id || undefined,
-        employee_name: formData.employee_name,
-        items: items.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price
-        })),
-        payment_method: formData.payment_method,
-        discount_amount: formData.discount_amount,
-        notes: formData.notes || undefined,
-        promotions_used: promotionsUsed.length > 0 ? promotionsUsed : undefined
-      };
-
-      await onSave(saleData);
-      onClose();
-    } catch (error) {
-      console.error('Error creating sale:', error);
-    } finally {
-      setIsSubmitting(false);
+    const conflicts = validateStockAvailability();
+    if (conflicts.length > 0) {
+      setStockConflicts(conflicts);
+      // No continuar con la venta, mostrar conflictos inline
+      return;
     }
+
+    // Si no hay conflictos, procesar la venta
+    await processSale();
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
       <DialogContent
         className="w-[98vw] h-[95vh] !max-w-[98vw] !max-h-[95vh] overflow-hidden [&>*]:max-w-none flex flex-col"
@@ -593,6 +701,66 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
             Registra una nueva venta seleccionando productos y especificando el empleado
           </DialogDescription>
         </DialogHeader>
+
+        {/* Alerta de Stock Insuficiente */}
+        {stockConflicts.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mx-3">
+            <div className="flex items-center gap-2 mb-3">
+              <X className="h-5 w-5 text-red-500" />
+              <h3 className="font-medium text-red-800">Stock Insuficiente</h3>
+            </div>
+            <p className="text-sm text-red-700 mb-3">
+              Algunos productos en tu carrito ya no tienen stock suficiente:
+            </p>
+            <div className="space-y-2 mb-4">
+              {stockConflicts.map((conflict, index) => (
+                <div key={index} className="flex items-center justify-between bg-white p-2 rounded border">
+                  <div className="flex-1">
+                    <div className="font-medium text-red-800">{conflict.productName}</div>
+                    <div className="text-sm text-red-600">
+                      Solicitado: {conflict.requested} • Disponible: {conflict.available}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Eliminar solo este producto del carrito
+                      setItems(prev => prev.filter(item => item.product_id !== conflict.productId));
+                      // Actualizar lista de conflictos
+                      setStockConflicts(prev => prev.filter(c => c.productId !== conflict.productId));
+                    }}
+                    className="h-7 px-2 text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setStockConflicts([])}
+              >
+                Revisar Manualmente
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  // Remover todos los productos con conflictos de stock
+                  const conflictProductIds = stockConflicts.map(c => c.productId);
+                  setItems(prev => prev.filter(item => !conflictProductIds.includes(item.product_id)));
+                  setStockConflicts([]);
+                }}
+                disabled={stockConflicts.length === 0}
+              >
+                Eliminar Todos sin Stock
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 flex flex-col gap-4 p-3 min-h-0">
           {/* Contenido principal */}
@@ -745,7 +913,18 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           {/* Productos */}
           <div className="flex-1 flex flex-col space-y-4 min-h-0">
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Buscar productos</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Buscar productos</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshProducts}
+                  disabled={isRefreshing}
+                  className="h-7 px-2"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
@@ -758,8 +937,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
             </div>
 
             {/* Lista de productos y promociones disponibles */}
-            {searchTerm && (
-              <div className="max-h-40 overflow-y-auto border rounded-lg">
+            <div className="max-h-40 overflow-y-auto border rounded-lg">
                 {/* Promociones activas */}
                 {availablePromotions.map((promotion) => (
                   <div
@@ -859,7 +1037,6 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                   </div>
                 )}
               </div>
-            )}
 
             {/* Items de la venta */}
             <div className="flex-1 flex flex-col space-y-1.5 min-h-0">
@@ -1080,5 +1257,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    </>
   );
 };
