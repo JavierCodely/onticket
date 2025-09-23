@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Tag, AlertCircle, Loader2 } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { Card, CardContent } from '@/shared/components/ui/card';
@@ -11,6 +11,7 @@ interface PromotionPriceDisplayProps {
   quantity: number;
   originalPrice: number;
   onPriceChange?: (priceData: PromotionPriceResult) => void;
+  disablePromotions?: boolean;
 }
 
 export function PromotionPriceDisplay({
@@ -142,21 +143,40 @@ export function PromotionPriceSimple({
   productId,
   quantity,
   originalPrice,
-  onPriceChange
+  onPriceChange,
+  disablePromotions = false
 }: PromotionPriceDisplayProps) {
   const { calculateBestPrice, loading } = usePromotionPricing();
   const [priceData, setPriceData] = useState<PromotionPriceResult | null>(null);
+  const onPriceChangeRef = useRef(onPriceChange);
+
+  // Actualizar la ref en cada render
+  onPriceChangeRef.current = onPriceChange;
+
+  // Si las promociones están deshabilitadas, mostrar solo el precio original SIN ESTADO
+  if (disablePromotions) {
+    return (
+      <div className="text-sm">
+        ${(originalPrice * quantity).toFixed(2)}
+        <div className="text-xs text-orange-600">Sin promo</div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (productId && quantity > 0) {
       calculateBestPrice(productId, quantity).then((result) => {
         if (result) {
           setPriceData(result);
-          onPriceChange?.(result);
+          if (onPriceChangeRef.current) {
+            onPriceChangeRef.current(result);
+          }
         }
       });
     }
-  }, [productId, quantity, calculateBestPrice, onPriceChange]);
+  }, [productId, quantity, calculateBestPrice]);
+
+  // Eliminar el efecto separado que causa bucles infinitos
 
   if (loading) {
     return (

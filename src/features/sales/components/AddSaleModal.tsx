@@ -42,6 +42,7 @@ interface SaleItemForm extends CreateSaleItem {
   product_sale_price: number;
   product_cost_price: number;
   promotion_data?: PromotionPriceResult | null;
+  disable_promotions?: boolean;
 }
 
 export const AddSaleModal: React.FC<AddSaleModalProps> = ({
@@ -179,27 +180,116 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     }));
   };
 
-  const addProduct = (productId: string) => {
+  const addProduct = (productId: string, forceNormalPrice: boolean = false) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    const existingItem = items.find(item => item.product_id === productId);
-    if (existingItem) {
-      updateItemQuantity(existingItem.id, existingItem.quantity + 1);
+    // Si se fuerza precio normal, buscar solo items sin promoción
+    // Si no se fuerza, buscar cualquier item del producto
+    const existingItem = items.find(item => {
+      if (forceNormalPrice) {
+        // Solo buscar items sin promoción activa
+        return item.product_id === productId && (!item.promotion_data || !item.promotion_data.has_promotion);
+      } else {
+        // Buscar cualquier item del producto
+        return item.product_id === productId;
+      }
+    });
+
+    if (existingItem && !forceNormalPrice) {
+      // Intentar incrementar cantidad del item existente
+      // Pero si tiene promoción y está en límite, crear nuevo item sin promoción
+      const canIncrement = checkCanIncrementItem(existingItem);
+      if (canIncrement) {
+        updateItemQuantity(existingItem.id, existingItem.quantity + 1);
+      } else {
+        // Crear nuevo item sin promoción
+        addProduct(productId, true);
+      }
     } else {
+      // Si se fuerza precio normal, siempre crear un nuevo item
+      // Si no se fuerza, verificar stock disponible
+      if (!forceNormalPrice) {
+        const totalQuantityInCart = getTotalQuantityInCart(productId);
+        if (totalQuantityInCart >= product.available_stock) {
+          // En lugar de alert, usar console para evitar problemas de UI
+          console.warn(`No hay stock suficiente. Stock disponible: ${product.available_stock}, ya tienes ${totalQuantityInCart} en el carrito.`);
+          return;
+        }
+      }
+
+      // Crear nuevo item
       const newItem: SaleItemForm = {
         id: Math.random().toString(36).substr(2, 9),
         product_id: productId,
-        product_name: product.name,
+        product_name: forceNormalPrice ? `${product.name} (Precio Normal)` : product.name,
         quantity: 1,
         unit_price: getPriceForProduct(product),
         product_sale_price: product.sale_price,
         product_cost_price: product.cost_price,
-        available_stock: product.available_stock
+        available_stock: product.available_stock,
+        disable_promotions: forceNormalPrice, // Deshabilitar promociones si se fuerza precio normal
+        promotion_data: forceNormalPrice ? {
+          has_promotion: false,
+          original_price: getPriceForProduct(product),
+          final_price: getPriceForProduct(product),
+          total_original: getPriceForProduct(product),
+          total_final: getPriceForProduct(product),
+          total_savings: 0,
+          discount_amount: 0,
+          discount_percentage: 0
+        } : undefined
       };
+
+      // Verificar stock después de agregar el item
+      const totalAfterAdd = getTotalQuantityInCart(productId) + 1;
+      if (totalAfterAdd > product.available_stock) {
+        console.warn(`No se puede agregar más productos. Excedería el stock disponible.`);
+        return;
+      }
+
       setItems(prev => [newItem, ...prev]);
     }
     setSearchTerm('');
+  };
+
+  // Función auxiliar para calcular cantidad total de un producto en el carrito
+  const getTotalQuantityInCart = (productId: string): number => {
+    return items
+      .filter(item => item.product_id === productId)
+      .reduce((total, item) => total + item.quantity, 0);
+  };
+
+  // Función auxiliar para verificar si se puede incrementar un item
+  const checkCanIncrementItem = (item: SaleItemForm): boolean => {
+    // Verificar stock total considerando todos los items del mismo producto
+    const totalInCart = getTotalQuantityInCart(item.product_id);
+    if (totalInCart >= item.available_stock) {
+      return false;
+    }
+
+    let maxAllowed = item.available_stock;
+
+    // Validar límites de promoción
+    if (item.promotion_data && item.promotion_data.promotion_id) {
+      const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
+      if (promotion) {
+        // Verificar si quedan ventas disponibles (max_uses)
+        if (promotion.max_uses) {
+          const ventasDisponibles = promotion.max_uses - promotion.current_uses;
+          if (ventasDisponibles <= 0) {
+            return false;
+          }
+        }
+
+        // Verificar cantidad máxima por venta (max_quantity)
+        if (promotion.max_quantity && item.quantity >= promotion.max_quantity) {
+          return false;
+        }
+      }
+    }
+
+    return item.quantity < maxAllowed;
   };
 
   const addPromotion = (promotion: PromotionWithDetails) => {
@@ -212,7 +302,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           if (product) {
             // Para admin: usar precio de compra, para otros: usar precio de promoción
             const basePrice = isAdminSale ? product.cost_price : product.sale_price;
-            const finalPrice = isAdminSale ? product.cost_price : (promotion.final_price / comboItems.length);
+            const finalPrice = isAdminSale ? product.cost_price : ((promotion.final_price || product.sale_price) / comboItems.length);
 
             const newItem: SaleItemForm = {
               id: Math.random().toString(36).substr(2, 9),
@@ -251,7 +341,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         } else {
           // Para admin: usar precio de compra, para otros: usar precio de promoción
           const basePrice = isAdminSale ? product.cost_price : product.sale_price;
-          const finalPrice = isAdminSale ? product.cost_price : promotion.final_price;
+          const finalPrice = isAdminSale ? product.cost_price : (promotion.final_price || product.sale_price);
 
           const newItem: SaleItemForm = {
             id: Math.random().toString(36).substr(2, 9),
@@ -291,7 +381,14 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
-        let maxAllowed = item.available_stock;
+        // Calcular cuánto stock total está siendo usado por otros items del mismo producto
+        const otherItemsQuantity = prev
+          .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id)
+          .reduce((total, otherItem) => total + otherItem.quantity, 0);
+
+        // Stock disponible para este item específico
+        const availableForThisItem = item.available_stock - otherItemsQuantity;
+        let maxAllowed = Math.max(0, availableForThisItem);
 
         // Validar límites de promoción
         if (item.promotion_data && item.promotion_data.promotion_id) {
@@ -322,14 +419,14 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
             if (promotion.max_uses) {
               const ventasDisponibles = promotion.max_uses - promotion.current_uses;
               if (ventasDisponibles <= 0) {
-                alert(`Esta promoción ha alcanzado su límite de ${promotion.max_uses} ventas (${promotion.current_uses} ventas realizadas)`);
-                return;
+                console.warn(`Esta promoción ha alcanzado su límite de ${promotion.max_uses} ventas (${promotion.current_uses} ventas realizadas)`);
+                return item; // Retornar el item sin cambios
               }
             }
 
             if (promotion.max_quantity && newQuantity > promotion.max_quantity) {
-              alert(`Esta promoción permite máximo ${promotion.max_quantity} productos por venta`);
-              return;
+              console.warn(`Esta promoción permite máximo ${promotion.max_quantity} productos por venta`);
+              return item; // Retornar el item sin cambios
             }
           }
         }
@@ -631,33 +728,69 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                 ))}
 
                 {/* Productos normales */}
-                {availableProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="p-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                    onClick={() => addProduct(product.id)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium text-sm">{product.name}</p>
-                        <p className="text-xs text-gray-500">
-                          Stock: {product.available_stock} | ${getPriceForProduct(product)}
-                          {isAdminSale && (
-                            <span className="text-blue-600 font-medium"> (Precio Admin)</span>
+                {availableProducts.map((product) => {
+                  // Verificar si el producto ya tiene una promoción activa en el carrito
+                  const hasPromotionInCart = items.some(item =>
+                    item.product_id === product.id &&
+                    item.promotion_data &&
+                    item.promotion_data.has_promotion
+                  );
+
+                  return (
+                    <div
+                      key={product.id}
+                      className="p-2 hover:bg-gray-50 border-b last:border-b-0"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1 cursor-pointer" onClick={() => addProduct(product.id)}>
+                          <p className="font-medium text-sm">{product.name}</p>
+                          <p className="text-xs text-gray-500">
+                            Stock: {product.available_stock} | ${getPriceForProduct(product)}
+                            {isAdminSale && (
+                              <span className="text-blue-600 font-medium"> (Precio Admin)</span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => addProduct(product.id)}
+                            title="Agregar producto (con promoción si disponible)"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          {hasPromotionInCart && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-xs border-orange-300 text-orange-600 hover:bg-orange-50"
+                              onClick={() => addProduct(product.id, true)}
+                              title="Agregar sin promoción (precio normal)"
+                            >
+                              Sin promo
+                            </Button>
                           )}
-                        </p>
+                        </div>
                       </div>
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                        <Plus className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {/* Mensaje cuando no hay resultados */}
                 {availablePromotions.length === 0 && availableProducts.length === 0 && (
                   <div className="p-4 text-center text-gray-500 text-sm">
                     No se encontraron productos ni promociones
+                  </div>
+                )}
+
+                {/* Mensaje informativo */}
+                {searchTerm && availableProducts.length > 0 && (
+                  <div className="p-2 bg-blue-50 border-t border-blue-200">
+                    <p className="text-xs text-blue-700">
+                      💡 <strong>Tip:</strong> Si un producto tiene promoción activa, usa "Sin promo" para agregarlo con precio normal
+                    </p>
                   </div>
                 )}
               </div>
@@ -734,7 +867,12 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                             if (newQuantity <= 0) {
                               removeItem(item.id);
                             } else {
-                              updateItemQuantity(item.id, Math.min(newQuantity, item.available_stock));
+                              // Calcular cuánto stock está disponible considerando otros items
+                              const otherItemsQuantity = items
+                                .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id)
+                                .reduce((total, otherItem) => total + otherItem.quantity, 0);
+                              const maxPossible = item.available_stock - otherItemsQuantity;
+                              updateItemQuantity(item.id, Math.min(newQuantity, maxPossible));
                             }
                           }}
                           onFocus={(e) => {
@@ -757,7 +895,14 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                           variant="outline"
                           onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
                           disabled={(() => {
-                            let maxAllowed = item.available_stock;
+                            // Calcular cuánto stock total está siendo usado por otros items del mismo producto
+                            const otherItemsQuantity = items
+                              .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id)
+                              .reduce((total, otherItem) => total + otherItem.quantity, 0);
+
+                            // Stock disponible para este item específico
+                            const availableForThisItem = item.available_stock - otherItemsQuantity;
+                            let maxAllowed = Math.max(0, availableForThisItem);
 
                             // Verificar límites de promoción
                             if (item.promotion_data && item.promotion_data.promotion_id) {
@@ -793,6 +938,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                           quantity={item.quantity}
                           originalPrice={isAdminSale && item.product_cost_price ? item.product_cost_price : item.product_sale_price}
                           onPriceChange={(promotionData) => handlePromotionChange(item.id, promotionData)}
+                          disablePromotions={item.disable_promotions || false}
                         />
                         {isAdminSale && item.product_cost_price && (
                           <div className="text-xs text-blue-600">Admin</div>
