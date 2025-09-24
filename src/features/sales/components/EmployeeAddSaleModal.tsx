@@ -26,9 +26,10 @@ import { PAYMENT_METHOD_CONFIG } from '../types';
 import type { CreateEmployeeSaleData } from '../services/employeeSalesService';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useActivePromotions } from '@/features/promotions/hooks/usePromotions';
-import type { PromotionPriceResult, PromotionWithDetails } from '@/core/types/database';
+import type { PromotionPriceResult, PromotionWithDetails, ComboWithDetails } from '@/core/types/database';
 import { PromotionPriceSimple } from './PromotionPriceDisplay';
 import { Tag } from 'lucide-react';
+import { CombosService } from '@/features/combos/services/combosService';
 
 interface EmployeeAddSaleModalProps {
   isOpen: boolean;
@@ -46,6 +47,15 @@ interface SaleItemForm {
   product_sale_price: number;
   promotion_data?: PromotionPriceResult | null;
   disable_promotions?: boolean;
+  // Campos para combos
+  combo_id?: string;
+  combo_name?: string;
+  is_combo_item?: boolean;
+  is_combo_display?: boolean; // Para mostrar el header del combo
+  combo_original_price?: number;
+  combo_savings?: number;
+  combo_price?: number;
+  combo_editable?: boolean;
 }
 
 export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
@@ -57,17 +67,146 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
   const { employee } = useAuth();
   const { activePromotions, refetch: refetchPromotions } = useActivePromotions();
 
+  // Estado para combos
+  const [availableCombos, setAvailableCombos] = useState<ComboWithDetails[]>([]);
+
+  // Función para cargar combos activos
+  const fetchCombos = useCallback(async () => {
+    try {
+      const combos = await CombosService.getActiveCombos();
+      setAvailableCombos(combos);
+    } catch (error) {
+      console.error('Error loading combos:', error);
+    }
+  }, []);
+
+  // Estados del componente
+  const [items, setItems] = useState<SaleItemForm[]>([]);
+
+  // Función para agregar combo al carrito
+  const handleAddComboToCart = useCallback((combo: ComboWithDetails) => {
+    console.log('Employee: Agregando combo al carrito:', combo.name);
+    console.log('💰 Datos completos del combo:', {
+      combo_price: combo.combo_price,
+      original_total_price: combo.original_total_price,
+      savings_amount: combo.savings_amount,
+      savings_percentage: combo.savings_percentage,
+      combo_items: combo.combo_items
+    });
+
+    // Verificar si ya se alcanzó el límite máximo de este combo
+    const comboCountInCart = items.filter(item => item.combo_id === combo.id).length / (combo.combo_items.length + 1); // +1 por el display header
+    if (comboCountInCart >= combo.max_combo_per_client) {
+      alert(`No puedes agregar más de ${combo.max_combo_per_client} de este combo por venta.`);
+      return;
+    }
+
+    const comboDisplayId = `combo-display-${combo.id}-${Date.now()}-${Math.random()}`;
+
+    // Crear el item de visualización del combo (cuadrado morado)
+    const comboDisplayItem: SaleItemForm = {
+      id: comboDisplayId,
+      product_id: 'combo-display',
+      product_name: combo.name,
+      quantity: 1,
+      unit_price: combo.combo_price,
+      available_stock: combo.effective_stock,
+      product_sale_price: combo.original_total_price,
+      promotion_data: null,
+      disable_promotions: true,
+      combo_id: combo.id,
+      combo_name: combo.name,
+      is_combo_display: true,
+      is_combo_item: false,
+      combo_original_price: combo.original_total_price,
+      combo_price: combo.combo_price,
+      combo_savings: combo.original_total_price - combo.combo_price,
+      combo_editable: false
+    };
+
+    // Crear los items individuales del combo
+    const comboItems: SaleItemForm[] = combo.combo_items.map((comboItem) => {
+      console.log(`💰 Datos del item ${comboItem.product_name}:`, {
+        unit_price: comboItem.unit_price,
+        quantity_per_combo: comboItem.quantity_per_combo,
+        total_price_per_combo: comboItem.total_price_per_combo
+      });
+
+      // Método más simple: dividir el precio del combo proporcionalmente
+      // según el peso de cada producto en el total original
+      const productWeight = comboItem.total_price_per_combo / combo.original_total_price;
+      const productComboPrice = combo.combo_price * productWeight;
+      const unitPriceInCombo = productComboPrice / comboItem.quantity_per_combo;
+
+      // Precio unitario original del producto
+      const originalUnitPrice = comboItem.unit_price;
+
+      // Ahorro por unidad
+      const unitSavings = originalUnitPrice - unitPriceInCombo;
+
+      console.log(`💰 Cálculo FINAL para ${comboItem.product_name}:`, {
+        originalUnitPrice,
+        productWeight,
+        productComboPrice,
+        unitPriceInCombo,
+        quantity: comboItem.quantity_per_combo,
+        unitSavings,
+        totalForThisProduct: unitPriceInCombo * comboItem.quantity_per_combo
+      });
+
+      return {
+        id: `combo-${combo.id}-${comboItem.product_id}-${Date.now()}-${Math.random()}`,
+        product_id: comboItem.product_id,
+        product_name: comboItem.product_name,
+        quantity: comboItem.quantity_per_combo,
+        unit_price: unitPriceInCombo,
+        available_stock: comboItem.available_stock,
+        product_sale_price: originalUnitPrice,
+        promotion_data: null,
+        disable_promotions: true,
+        // Campos específicos de combo
+        combo_id: combo.id,
+        combo_name: combo.name,
+        is_combo_item: true,
+        combo_original_price: originalUnitPrice,
+        combo_savings: unitSavings,
+        combo_editable: false
+      };
+    });
+
+    // Verificar que el total de todos los items del combo sume el precio del combo
+    const totalCalculatedPrice = comboItems.reduce((sum, item) => sum + ((item.unit_price || 0) * item.quantity), 0);
+    console.log(`🔍 Verificación total del combo:`, {
+      precioComboOriginal: combo.combo_price,
+      totalCalculado: totalCalculatedPrice,
+      diferencia: totalCalculatedPrice - combo.combo_price,
+      items: comboItems.length
+    });
+
+    // Agregar el display del combo y todos los items del combo al carrito
+    setItems(prev => [comboDisplayItem, ...comboItems, ...prev]);
+    setSearchTerm('');
+
+    console.log(`Employee: Combo "${combo.name}" agregado al carrito con ${combo.combo_items.length} productos`);
+  }, [items]);
+
   const [formData, setFormData] = useState({
     payment_method: '' as 'cash' | 'transfer' | 'credit' | 'debit' | '',
     discount_amount: 0,
     notes: ''
   });
 
-  const [items, setItems] = useState<SaleItemForm[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stockConflicts, setStockConflicts] = useState<{productId: string, productName: string, requested: number, available: number}[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Cargar combos cuando se abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      fetchCombos();
+    }
+  }, [isOpen, fetchCombos]);
 
   // Función para refrescar productos manualmente
   const handleRefreshProducts = async () => {
@@ -78,6 +217,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       await fetchProducts();
       console.log('Employee: Calling refetchPromotions');
       await refetchPromotions();
+      console.log('Employee: Calling fetchCombos');
+      await fetchCombos();
       console.log('Employee: Refresh completed successfully');
 
       // Actualizar el stock disponible en los items del carrito
@@ -131,6 +272,11 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
 
       if (currentProducts) {
         for (const item of items) {
+          // Solo validar stock para productos individuales, no para items de combo
+          if (item.is_combo_item || item.is_combo_display) {
+            continue;
+          }
+
           const currentProduct = currentProducts.find(p => p.id === item.product_id);
           const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
           const currentStock = currentProduct?.available_stock || 0;
@@ -142,7 +288,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
             totalQuantityInCart,
             currentStock,
             condition: totalQuantityInCart > currentStock,
-            wouldAddToIssues: totalQuantityInCart > currentStock
+            wouldAddToIssues: totalQuantityInCart > currentStock,
+            isComboItem: item.is_combo_item
           });
 
           if (totalQuantityInCart > currentStock) {
@@ -195,11 +342,13 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       });
 
       const saleData: CreateEmployeeSaleData = {
-        items: items.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price
-        })),
+        items: items
+          .filter(item => !item.is_combo_display) // Excluir displays de combo
+          .map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price
+          })),
         payment_method: formData.payment_method,
         discount_amount: formData.discount_amount,
         notes: formData.notes || undefined,
@@ -268,7 +417,49 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     return true; // Para otros tipos de promociones
   }) : [];
 
+  // Filtrar combos que coincidan con la búsqueda
+  const availableCombos_filtered = searchTerm ? availableCombos.filter(combo => {
+    // Temporalmente relajar filtros para debug
+    const isAvailable = combo.status === 'active'; // Solo verificar status
+    // const hasStock = combo.effective_stock > 0;  // Comentado temporalmente
+    const matchesSearch = combo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         searchTerm.toLowerCase().includes('combo');
+
+    console.log(`🔍 Employee Filtro combo "${combo.name}":`, {
+      status: combo.status,
+      isAvailable,
+      // hasStock,
+      matchesSearch,
+      searchTerm,
+      willShow: isAvailable && matchesSearch
+    });
+
+    return isAvailable && matchesSearch; // Temporalmente sin verificar stock
+  }) : [];
+
   const subtotal = items.reduce((sum, item) => {
+    // No incluir el display del combo en el subtotal (solo los items individuales)
+    if (item.is_combo_display) {
+      return sum;
+    }
+
+    // Debug para todos los items (especialmente combos)
+    const price = (item.promotion_data && item.promotion_data.has_promotion)
+      ? item.promotion_data.final_price
+      : (item.unit_price || item.product_sale_price);
+
+    console.log(`💰 Employee Subtotal - ${item.product_name}:`, {
+      price,
+      quantity: item.quantity,
+      subtotalForItem: price * item.quantity,
+      isComboItem: item.is_combo_item || false,
+      isComboDisplay: item.is_combo_display || false,
+      comboName: item.combo_name || 'N/A',
+      unit_price: item.unit_price,
+      product_sale_price: item.product_sale_price,
+      hasPromotion: !!(item.promotion_data && item.promotion_data.has_promotion)
+    });
+
     // Usar precio de promoción si está disponible, sino usar precio normal
     if (item.promotion_data && item.promotion_data.has_promotion) {
       return sum + item.promotion_data.final_price * item.quantity;
@@ -332,39 +523,74 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    // Si se fuerza precio normal, buscar solo items sin promoción
-    // Si no se fuerza, buscar cualquier item del producto
+    console.log('🔍 AddProduct called:', {
+      productId,
+      productName: product.name,
+      forceNormalPrice,
+      itemsInCart: items.length,
+      comboItems: items.filter(i => i.is_combo_item).length,
+      individualItems: items.filter(i => !i.is_combo_item && !i.is_combo_display).length
+    });
+
+    // Verificar stock disponible (excluyendo items de combo del conteo)
+    const totalQuantityInCart = items
+      .filter(item => item.product_id === productId && !item.is_combo_item && !item.is_combo_display)
+      .reduce((total, item) => total + item.quantity, 0);
+
+    console.log('📦 Stock check:', {
+      productName: product.name,
+      totalQuantityInCart,
+      availableStock: product.available_stock,
+      wouldExceed: totalQuantityInCart >= product.available_stock
+    });
+
+    if (totalQuantityInCart >= product.available_stock) {
+      console.warn(`No hay stock suficiente. Stock disponible: ${product.available_stock}, ya tienes ${totalQuantityInCart} en el carrito.`);
+      return;
+    }
+
+    // Si se fuerza precio normal, buscar solo items sin promoción y que NO sean de combo
+    // Si no se fuerza, buscar cualquier item del producto que NO sea de combo
     const existingItem = items.find(item => {
       if (forceNormalPrice) {
-        // Solo buscar items sin promoción activa
-        return item.product_id === productId && (!item.promotion_data || !item.promotion_data.has_promotion);
+        // Solo buscar items sin promoción activa y que no sean de combo
+        return item.product_id === productId &&
+               (!item.promotion_data || !item.promotion_data.has_promotion) &&
+               !item.is_combo_item &&
+               !item.is_combo_display;
       } else {
-        // Buscar cualquier item del producto
-        return item.product_id === productId;
+        // Buscar cualquier item del producto que NO sea de combo
+        return item.product_id === productId && !item.is_combo_item && !item.is_combo_display;
       }
+    });
+
+    console.log('🔍 Existing item search:', {
+      existingItem: existingItem ? {
+        id: existingItem.id,
+        name: existingItem.product_name,
+        quantity: existingItem.quantity,
+        hasPromotion: existingItem.promotion_data?.has_promotion
+      } : null,
+      forceNormalPrice
     });
 
     if (existingItem && !forceNormalPrice) {
       // Intentar incrementar cantidad del item existente
       // Pero si tiene promoción y está en límite, crear nuevo item sin promoción
       const canIncrement = checkCanIncrementItem(existingItem);
+      console.log('📈 Can increment existing item:', canIncrement);
+
       if (canIncrement) {
         updateItemQuantity(existingItem.id, existingItem.quantity + 1);
       } else {
         // Crear nuevo item sin promoción
+        console.log('🚫 Cannot increment, creating new item with normal price');
         addProduct(productId, true);
       }
     } else {
-      // Si se fuerza precio normal, siempre crear un nuevo item
-      // Si no se fuerza, verificar stock disponible
-      if (!forceNormalPrice) {
-        const totalQuantityInCart = getTotalQuantityInCart(productId);
-        if (totalQuantityInCart >= product.available_stock) {
-          // En lugar de alert, usar console para evitar problemas de UI
-          console.warn(`No hay stock suficiente. Stock disponible: ${product.available_stock}, ya tienes ${totalQuantityInCart} en el carrito.`);
-          return;
-        }
-      }
+      console.log('➕ Creating new item:', {
+        reason: forceNormalPrice ? 'forced normal price' : 'no existing item found'
+      });
 
       // Crear nuevo item
       const newItem: SaleItemForm = {
@@ -388,14 +614,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
         } : undefined
       };
 
-      // Verificar stock después de agregar el item
-      const totalAfterAdd = getTotalQuantityInCart(productId) + 1;
-      if (totalAfterAdd > product.available_stock) {
-        console.warn(`No se puede agregar más productos. Excedería el stock disponible.`);
-        return;
-      }
-
       setItems(prev => [newItem, ...prev]);
+      console.log('✅ New item added to cart');
     }
     setSearchTerm('');
   };
@@ -481,28 +701,35 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     setSearchTerm('');
   };
 
-  // Función auxiliar para calcular cantidad total de un producto en el carrito
+  // Función auxiliar para calcular cantidad total de un producto en el carrito (sin incluir items de combo)
   const getTotalQuantityInCart = (productId: string): number => {
     return items
-      .filter(item => item.product_id === productId)
+      .filter(item => item.product_id === productId && !item.is_combo_item)
       .reduce((total, item) => total + item.quantity, 0);
   };
 
-  // Verificar si hay items sin stock suficiente
+  // Verificar si hay items sin stock suficiente (solo para productos individuales, no combos)
   const hasItemsWithoutStock = items.some(item => {
+    if (item.is_combo_item || item.is_combo_display) return false;
     const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
     return totalQuantityInCart > item.available_stock;
   });
 
-  // Obtener items sin stock para mostrar advertencia
+  // Obtener items sin stock para mostrar advertencia (solo productos individuales)
   const itemsWithoutStock = items.filter(item => {
+    if (item.is_combo_item || item.is_combo_display) return false;
     const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
     return totalQuantityInCart > item.available_stock;
   });
 
   // Función auxiliar para verificar si se puede incrementar un item
   const checkCanIncrementItem = (item: SaleItemForm): boolean => {
-    // Verificar stock total considerando todos los items del mismo producto
+    // Los items de combo no se pueden incrementar
+    if (item.is_combo_item || item.is_combo_display) {
+      return false;
+    }
+
+    // Verificar stock total considerando solo productos individuales (no combos)
     const totalInCart = getTotalQuantityInCart(item.product_id);
     if (totalInCart >= item.available_stock) {
       return false;
@@ -540,9 +767,14 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
 
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
-        // Calcular cuánto stock total está siendo usado por otros items del mismo producto
+        // Los items de combo no se pueden modificar
+        if (item.is_combo_item || item.is_combo_display) {
+          return item;
+        }
+
+        // Calcular cuánto stock total está siendo usado por otros items del mismo producto (solo individuales)
         const otherItemsQuantity = prev
-          .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id)
+          .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id && !otherItem.is_combo_item)
           .reduce((total, otherItem) => total + otherItem.quantity, 0);
 
         // Stock disponible para este item específico
@@ -706,6 +938,7 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     try {
       await fetchProducts();
       await refetchPromotions();
+      await fetchCombos();
     } catch (error) {
       console.error('Error en auto-refresh:', error);
       alert('Error al actualizar información de productos. Intente nuevamente.');
@@ -947,6 +1180,68 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                     </div>
                   ))}
 
+                  {/* Combos */}
+                  {availableCombos.map((combo) => (
+                    <div
+                      key={combo.id}
+                      className="p-3 hover:bg-purple-50 border border-purple-200 rounded-md mb-2 bg-purple-25"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 cursor-pointer" onClick={() => handleAddComboToCart(combo)}>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-sm text-purple-700">{combo.name}</p>
+                            <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">
+                              COMBO
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1">{combo.description}</p>
+
+                          {/* Productos del combo */}
+                          <div className="mt-2 space-y-1">
+                            {combo.combo_items.map((item, index) => (
+                              <p key={index} className="text-xs text-gray-500">
+                                • {item.quantity_per_combo}x {item.product_name}
+                              </p>
+                            ))}
+                          </div>
+
+                          {/* Precios */}
+                          <div className="mt-2 flex items-center gap-3">
+                            <div className="text-sm">
+                              <span className="text-gray-500 line-through">
+                                ${combo.original_total_price?.toFixed(2)}
+                              </span>
+                              <span className="ml-2 font-semibold text-purple-700">
+                                ${combo.combo_price?.toFixed(2)}
+                              </span>
+                            </div>
+                            {combo.original_total_price && combo.combo_price && (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                Ahorras ${(combo.original_total_price - combo.combo_price).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Stock y límites */}
+                          <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
+                            <span>Stock: {combo.effective_stock}</span>
+                            {combo.max_quantity_per_sale && (
+                              <span>Max: {combo.max_quantity_per_sale} por venta</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 w-8 p-0 border-purple-200 text-purple-600 hover:bg-purple-100"
+                          onClick={() => handleAddComboToCart(combo)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
                   {/* Productos normales */}
                   {availableProducts.map((product) => {
                     // Verificar si el producto ya tiene una promoción activa en el carrito
@@ -1023,22 +1318,80 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                     </div>
                   ) : (
                     items.map((item) => {
+                      // Renderizado especial para el display del combo
+                      if (item.is_combo_display) {
+                        return (
+                          <div key={item.id} className="bg-purple-50 border-2 border-purple-300 rounded-lg p-3 mb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-semibold text-purple-800">{item.combo_name}</h3>
+                                  <span className="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded-full font-medium">
+                                    COMBO
+                                  </span>
+                                </div>
+
+                                <div className="mt-2 grid grid-cols-3 gap-3 text-sm">
+                                  <div className="text-center">
+                                    <div className="text-xs text-purple-600 font-medium">Precio Original</div>
+                                    <div className="text-gray-600 line-through">
+                                      ${item.combo_original_price?.toFixed(2)}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-center">
+                                    <div className="text-xs text-purple-600 font-medium">Precio Combo</div>
+                                    <div className="font-semibold text-purple-700">
+                                      ${item.combo_price?.toFixed(2)}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-center">
+                                    <div className="text-xs text-purple-600 font-medium">Ahorras</div>
+                                    <div className="font-semibold text-green-600">
+                                      ${item.combo_savings?.toFixed(2)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  // Remover todo el combo (display + items)
+                                  setItems(prev => prev.filter(i => i.combo_id !== item.combo_id));
+                                }}
+                                className="h-6 w-6 p-0 text-purple-600 hover:text-red-600 hover:bg-red-50"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Renderizado normal para productos
                       const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
-                      const hasStockIssue = totalQuantityInCart > item.available_stock;
+                      // Solo verificar stock issues para productos individuales
+                      const hasStockIssue = !item.is_combo_item && !item.is_combo_display && totalQuantityInCart > item.available_stock;
 
                       return (
                       <div key={item.id} className={`flex items-center gap-2 p-2 border rounded-md transition-colors ${
+                        item.is_combo_item ? 'bg-purple-50/50 border-purple-200 ml-4' : ''
+                      } ${
                         hasStockIssue
                           ? 'bg-red-50 border-red-200 hover:bg-red-100'
-                          : 'bg-card hover:bg-accent/50'
+                          : item.is_combo_item ? 'hover:bg-purple-50' : 'bg-card hover:bg-accent/50'
                       }`}>
                         {/* Nombre del producto */}
                         <div className="flex-1 min-w-0">
-                          <p className={`font-medium text-sm truncate ${hasStockIssue ? 'text-red-700' : ''}`}>
+                          <p className={`font-medium text-sm truncate ${hasStockIssue ? 'text-red-700' : item.is_combo_item ? 'text-purple-700' : ''}`}>
+                            {item.is_combo_item && '↳ '}
                             {item.product_name}
                             {hasStockIssue && <span className="ml-2 text-red-600">⚠️ Sin stock</span>}
                           </p>
-                          <div className={`text-xs ${hasStockIssue ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          <div className={`text-xs ${hasStockIssue ? 'text-red-600' : item.is_combo_item ? 'text-purple-600' : 'text-muted-foreground'}`}>
                             <div>Stock: {item.available_stock} {hasStockIssue && `(Necesitas: ${totalQuantityInCart})`}</div>
                             {/* Mostrar límites de promoción si aplica */}
                             {item.promotion_data && item.promotion_data.promotion_id && (() => {
@@ -1070,81 +1423,97 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Cantidad */}
+                        {/* Cantidad - No editable para items de combo */}
                         <div className="flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              if (item.quantity <= 1) {
-                                removeItem(item.id);
-                              } else {
-                                updateItemQuantity(item.id, item.quantity - 1);
-                              }
-                            }}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Minus className="h-2.5 w-2.5" />
-                          </Button>
-                          <Input
-                            type="text"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/\D/g, '');
-                              const newQuantity = value === '' ? 1 : parseInt(value, 10);
-                              if (newQuantity <= 0) {
-                                removeItem(item.id);
-                              } else {
-                                // Calcular cuánto stock está disponible considerando otros items
-                                const otherItemsQuantity = items
-                                  .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id)
-                                  .reduce((total, otherItem) => total + otherItem.quantity, 0);
-                                const maxPossible = item.available_stock - otherItemsQuantity;
-                                updateItemQuantity(item.id, Math.min(newQuantity, maxPossible));
-                              }
-                            }}
-                            onFocus={(e) => {
-                              const target = e.target as HTMLInputElement;
-                              target.select();
-                              setTimeout(() => target.select(), 0);
-                            }}
-                            onClick={(e) => (e.target as HTMLInputElement).select()}
-                            onKeyDown={(e) => {
-                              if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                                e.preventDefault();
-                              }
-                            }}
-                            className="text-center h-6 w-10 text-xs border-0 bg-muted font-medium"
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
-                            disabled={(() => {
-                              // Calcular cuánto stock total está siendo usado por otros items del mismo producto
-                              const otherItemsQuantity = items
-                                .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id)
-                                .reduce((total, otherItem) => total + otherItem.quantity, 0);
+                          {!item.is_combo_item ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (item.quantity <= 1) {
+                                    removeItem(item.id);
+                                  } else {
+                                    updateItemQuantity(item.id, item.quantity - 1);
+                                  }
+                                }}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Minus className="h-2.5 w-2.5" />
+                              </Button>
+                              <Input
+                                type="text"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/\D/g, '');
+                                  const newQuantity = value === '' ? 1 : parseInt(value, 10);
+                                  if (newQuantity <= 0) {
+                                    removeItem(item.id);
+                                  } else {
+                                    // Calcular cuánto stock está disponible considerando otros items (solo individuales)
+                                    const otherItemsQuantity = items
+                                      .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id && !otherItem.is_combo_item)
+                                      .reduce((total, otherItem) => total + otherItem.quantity, 0);
+                                    const maxPossible = item.available_stock - otherItemsQuantity;
+                                    updateItemQuantity(item.id, Math.min(newQuantity, maxPossible));
+                                  }
+                                }}
+                                onFocus={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  target.select();
+                                  setTimeout(() => target.select(), 0);
+                                }}
+                                onClick={(e) => (e.target as HTMLInputElement).select()}
+                                onKeyDown={(e) => {
+                                  if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                className="text-center h-6 w-10 text-xs border-0 bg-muted font-medium"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                                disabled={(() => {
+                                  // Calcular cuánto stock total está siendo usado por otros items del mismo producto (solo individuales)
+                                  const otherItemsQuantity = items
+                                    .filter(otherItem => otherItem.product_id === item.product_id && otherItem.id !== item.id && !otherItem.is_combo_item)
+                                    .reduce((total, otherItem) => total + otherItem.quantity, 0);
 
-                              // Stock disponible para este item específico
-                              const availableForThisItem = item.available_stock - otherItemsQuantity;
-                              return item.quantity >= Math.max(0, availableForThisItem);
-                            })()}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Plus className="h-2.5 w-2.5" />
-                          </Button>
+                                  // Stock disponible para este item específico
+                                  const availableForThisItem = item.available_stock - otherItemsQuantity;
+                                  return item.quantity >= Math.max(0, availableForThisItem);
+                                })()}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Plus className="h-2.5 w-2.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            // Para items de combo, mostrar cantidad fija
+                            <div className="text-center h-6 w-16 text-xs bg-purple-100 text-purple-700 border border-purple-200 rounded px-2 py-1 font-medium">
+                              {item.quantity}x
+                            </div>
+                          )}
                         </div>
 
                         {/* Precio unitario con promociones */}
                         <div className="w-20 text-right">
-                          <PromotionPriceSimple
-                            productId={item.product_id}
-                            quantity={item.quantity}
-                            originalPrice={item.product_sale_price}
-                            onPriceChange={(promotionData) => handlePromotionChange(item.id, promotionData)}
-                            disablePromotions={item.disable_promotions || false}
-                          />
+                          {!item.is_combo_item ? (
+                            <PromotionPriceSimple
+                              productId={item.product_id}
+                              quantity={item.quantity}
+                              originalPrice={item.product_sale_price}
+                              onPriceChange={(promotionData) => handlePromotionChange(item.id, promotionData)}
+                              disablePromotions={item.disable_promotions || false}
+                            />
+                          ) : (
+                            // Para items de combo, mostrar precio fijo
+                            <div className="text-sm text-purple-700 font-medium">
+                              ${(item.unit_price || 0).toFixed(2)}
+                            </div>
+                          )}
                         </div>
 
                         {/* Total */}
@@ -1159,15 +1528,17 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                           })()}
                         </div>
 
-                        {/* Botón eliminar */}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeItem(item.id)}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
+                        {/* Botón eliminar - Solo para productos individuales, no para items de combo */}
+                        {!item.is_combo_item && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeItem(item.id)}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                       );
                     })
