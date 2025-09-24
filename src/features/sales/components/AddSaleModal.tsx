@@ -341,6 +341,19 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     } else {
       price = isAdminSale && item.product_cost_price ? item.product_cost_price : (item.unit_price || item.product_sale_price);
     }
+
+    // Debug para todos los items (especialmente combos)
+    console.log(`💰 Subtotal - ${item.product_name}:`, {
+      price,
+      quantity: item.quantity,
+      subtotalForItem: price * item.quantity,
+      isComboItem: item.is_combo_item || false,
+      comboName: item.combo_name || 'N/A',
+      unit_price: item.unit_price,
+      product_sale_price: item.product_sale_price,
+      hasPromotion: !!(item.promotion_data && item.promotion_data.has_promotion)
+    });
+
     return sum + price * item.quantity;
   }, 0);
   const total = subtotal - formData.discount_amount;
@@ -511,6 +524,13 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   // Función para agregar combo al carrito
   const handleAddComboToCart = useCallback((combo: ComboWithDetails) => {
     console.log('Agregando combo al carrito:', combo.name);
+    console.log('💰 Datos completos del combo:', {
+      combo_price: combo.combo_price,
+      original_total_price: combo.original_total_price,
+      savings_amount: combo.savings_amount,
+      savings_percentage: combo.savings_percentage,
+      combo_items: combo.combo_items
+    });
 
     // Verificar si ya se alcanzó el límite máximo de este combo
     const comboCountInCart = items.filter(item => item.combo_id === combo.id).length / combo.combo_items.length;
@@ -521,16 +541,44 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
     // Crear los items individuales del combo
     const comboItems: SaleItemForm[] = combo.combo_items.map((comboItem) => {
+      console.log(`💰 Datos del item ${comboItem.product_name}:`, {
+        unit_price: comboItem.unit_price,
+        quantity_per_combo: comboItem.quantity_per_combo,
+        total_price_per_combo: comboItem.total_price_per_combo
+      });
+
+      // Método más simple: dividir el precio del combo proporcionalmente
+      // según el peso de cada producto en el total original
+      const productWeight = comboItem.total_price_per_combo / combo.original_total_price;
+      const productComboPrice = combo.combo_price * productWeight;
+      const unitPriceInCombo = productComboPrice / comboItem.quantity_per_combo;
+
+      // Precio unitario original del producto
+      const originalUnitPrice = comboItem.unit_price;
+
+      // Ahorro por unidad
+      const unitSavings = originalUnitPrice - unitPriceInCombo;
+
+      console.log(`💰 Cálculo FINAL para ${comboItem.product_name}:`, {
+        originalUnitPrice,
+        productWeight,
+        productComboPrice,
+        unitPriceInCombo,
+        quantity: comboItem.quantity_per_combo,
+        unitSavings,
+        totalForThisProduct: unitPriceInCombo * comboItem.quantity_per_combo
+      });
+
       return {
         id: `combo-${combo.id}-${comboItem.product_id}-${Date.now()}-${Math.random()}`,
         product_id: comboItem.product_id,
         product_name: comboItem.product_name,
         quantity: comboItem.quantity_per_combo,
-        unit_price: combo.combo_price / combo.combo_items.length, // Dividir precio del combo entre productos
+        unit_price: unitPriceInCombo,
         available_stock: comboItem.available_stock,
-        original_price: comboItem.unit_price,
+        original_price: originalUnitPrice,
         discount_amount: 0,
-        product_sale_price: comboItem.unit_price,
+        product_sale_price: originalUnitPrice,
         product_cost_price: 0,
         promotion_data: null,
         disable_promotions: true,
@@ -538,10 +586,19 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         combo_id: combo.id,
         combo_name: combo.name,
         is_combo_item: true,
-        combo_original_price: comboItem.total_price_per_combo,
-        combo_savings: (comboItem.total_price_per_combo - (combo.combo_price / combo.combo_items.length)),
+        combo_original_price: originalUnitPrice, // Precio original por unidad
+        combo_savings: unitSavings, // Ahorro por unidad
         combo_editable: false
       };
+    });
+
+    // Verificar que el total de todos los items del combo sume el precio del combo
+    const totalCalculatedPrice = comboItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+    console.log(`🔍 Verificación total del combo:`, {
+      precioComboOriginal: combo.combo_price,
+      totalCalculado: totalCalculatedPrice,
+      diferencia: totalCalculatedPrice - combo.combo_price,
+      items: comboItems.length
     });
 
     // Agregar todos los items del combo al carrito
@@ -1187,13 +1244,13 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                           </div>
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-lg font-bold text-purple-600">
-                              ${combo.combo_price.toFixed(2)}
+                              Combo: ${combo.combo_price.toFixed(2)}
                             </span>
                             <span className="text-sm text-gray-500 line-through">
-                              ${combo.original_total_price.toFixed(2)}
+                              Individual: ${combo.original_total_price.toFixed(2)}
                             </span>
                             <span className="text-sm text-green-600 font-medium">
-                              Ahorro: ${combo.savings_amount.toFixed(2)}
+                              Ahorras: ${combo.savings_amount.toFixed(2)} ({combo.savings_percentage.toFixed(0)}%)
                             </span>
                           </div>
                         </div>
@@ -1322,7 +1379,10 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                                 → Precio combo: ${item.unit_price.toFixed(2)}
                               </div>
                               <div>
-                                Ahorro: ${item.combo_savings?.toFixed(2)} por este producto
+                                Ahorro por unidad: ${item.combo_savings?.toFixed(2)}
+                              </div>
+                              <div>
+                                Ahorro total: ${((item.combo_savings || 0) * item.quantity).toFixed(2)}
                               </div>
                               <div className="font-medium">
                                 🔒 Cantidad fija del combo (no editable)
