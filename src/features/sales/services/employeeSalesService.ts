@@ -27,11 +27,17 @@ export class EmployeeSalesService {
         .order('sale_date', { ascending: false });
 
       if (startDate) {
-        query = query.gte('sale_date', startDate);
+        // Convertir fecha local a UTC considerando la zona horaria del cliente
+        const startDateTime = new Date(startDate + 'T00:00:00');
+        const startUTC = startDateTime.toISOString();
+        query = query.gte('sale_date', startUTC);
       }
 
       if (endDate) {
-        query = query.lte('sale_date', endDate);
+        // Convertir fecha local a UTC considerando la zona horaria del cliente
+        const endDateTime = new Date(endDate + 'T23:59:59.999');
+        const endUTC = endDateTime.toISOString();
+        query = query.lte('sale_date', endUTC);
       }
 
       const { data, error } = await query;

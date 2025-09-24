@@ -21,6 +21,7 @@ import {
 } from '@/shared/components/ui/select';
 import { useProducts } from '@/features/products/hooks/useProducts';
 import { parseNumberInput } from '@/shared/utils/numberUtils';
+import { supabase } from '@/core/config/supabase';
 import { PAYMENT_METHOD_CONFIG } from '../types';
 import type { CreateEmployeeSaleData } from '../services/employeeSalesService';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -70,12 +71,31 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
 
   // Función para refrescar productos manualmente
   const handleRefreshProducts = async () => {
+    console.log('Employee: handleRefreshProducts called');
     setIsRefreshing(true);
     try {
+      console.log('Employee: Calling fetchProducts');
       await fetchProducts();
+      console.log('Employee: Calling refetchPromotions');
       await refetchPromotions();
+      console.log('Employee: Refresh completed successfully');
+
+      // Actualizar el stock disponible en los items del carrito
+      setItems(prevItems => {
+        return prevItems.map(item => {
+          const updatedProduct = products.find(p => p.id === item.product_id);
+          if (updatedProduct) {
+            return {
+              ...item,
+              available_stock: updatedProduct.available_stock
+            };
+          }
+          return item;
+        });
+      });
+
     } catch (error) {
-      console.error('Error refreshing products:', error);
+      console.error('Employee: Error refreshing products:', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -88,8 +108,75 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       return;
     }
 
+    // Verificar stock actual directamente desde la base de datos sin afectar el estado global
+    console.log('Employee: Checking stock before creating sale');
+
+    const itemsWithStockIssues: string[] = [];
+    const updatedItemsStock: { [key: string]: number } = {};
+
+    // Consultar stock actual de cada producto del carrito directamente
     try {
-      setIsSubmitting(true);
+      const productIds = [...new Set(items.map(item => item.product_id))];
+      console.log('Employee: Checking stock for product IDs:', productIds);
+
+      const { data: currentProducts, error: stockError } = await supabase
+        .from('products_with_stock')
+        .select('id, name, available_stock')
+        .in('id', productIds);
+
+      if (stockError) {
+        console.error('Error querying products_with_stock:', stockError);
+        throw stockError;
+      }
+
+      if (currentProducts) {
+        for (const item of items) {
+          const currentProduct = currentProducts.find(p => p.id === item.product_id);
+          const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
+          const currentStock = currentProduct?.available_stock || 0;
+
+          updatedItemsStock[item.product_id] = currentStock;
+
+          // Debug logging para entender el problema
+          console.log(`Employee Stock validation for ${currentProduct?.name || item.product_name}:`, {
+            totalQuantityInCart,
+            currentStock,
+            condition: totalQuantityInCart > currentStock,
+            wouldAddToIssues: totalQuantityInCart > currentStock
+          });
+
+          if (totalQuantityInCart > currentStock) {
+            itemsWithStockIssues.push(currentProduct?.name || item.product_name);
+          }
+        }
+
+        if (itemsWithStockIssues.length > 0) {
+          // Actualizar solo el stock de los items del carrito sin afectar products
+          setItems(prevItems => {
+            return prevItems.map(item => ({
+              ...item,
+              available_stock: updatedItemsStock[item.product_id] || item.available_stock
+            }));
+          });
+
+          // No mostrar alert, los productos se marcarán automáticamente en rojo
+          // y el botón de crear venta se desactivará por la validación visual existente
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Employee: Error checking stock:', error);
+      console.error('Employee Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: (error as any)?.code,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint
+      });
+      alert('Error al verificar stock. Por favor intenta de nuevo.');
+      return;
+    }
+
+    try {
 
       // Recolectar promociones usadas (1 por venta, no por cantidad de productos)
       const promotionsUsed: Array<{promotion_id: string, quantity: number}> = [];
@@ -400,6 +487,18 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       .filter(item => item.product_id === productId)
       .reduce((total, item) => total + item.quantity, 0);
   };
+
+  // Verificar si hay items sin stock suficiente
+  const hasItemsWithoutStock = items.some(item => {
+    const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
+    return totalQuantityInCart > item.available_stock;
+  });
+
+  // Obtener items sin stock para mostrar advertencia
+  const itemsWithoutStock = items.filter(item => {
+    const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
+    return totalQuantityInCart > item.available_stock;
+  });
 
   // Función auxiliar para verificar si se puede incrementar un item
   const checkCanIncrementItem = (item: SaleItemForm): boolean => {
@@ -923,13 +1022,24 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                       No hay productos en la venta
                     </div>
                   ) : (
-                    items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-2 p-2 border rounded-md bg-card hover:bg-accent/50 transition-colors">
+                    items.map((item) => {
+                      const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
+                      const hasStockIssue = totalQuantityInCart > item.available_stock;
+
+                      return (
+                      <div key={item.id} className={`flex items-center gap-2 p-2 border rounded-md transition-colors ${
+                        hasStockIssue
+                          ? 'bg-red-50 border-red-200 hover:bg-red-100'
+                          : 'bg-card hover:bg-accent/50'
+                      }`}>
                         {/* Nombre del producto */}
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{item.product_name}</p>
-                          <div className="text-xs text-muted-foreground">
-                            <div>Stock: {item.available_stock}</div>
+                          <p className={`font-medium text-sm truncate ${hasStockIssue ? 'text-red-700' : ''}`}>
+                            {item.product_name}
+                            {hasStockIssue && <span className="ml-2 text-red-600">⚠️ Sin stock</span>}
+                          </p>
+                          <div className={`text-xs ${hasStockIssue ? 'text-red-600' : 'text-muted-foreground'}`}>
+                            <div>Stock: {item.available_stock} {hasStockIssue && `(Necesitas: ${totalQuantityInCart})`}</div>
                             {/* Mostrar límites de promoción si aplica */}
                             {item.promotion_data && item.promotion_data.promotion_id && (() => {
                               const promotion = activePromotions.find(p => p.id === item.promotion_data?.promotion_id);
@@ -1059,7 +1169,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -1071,8 +1182,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
           <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="h-9 px-4">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || items.length === 0} className="h-9 px-4">
-            {isSubmitting ? 'Creando...' : 'Crear Venta'}
+          <Button onClick={handleSubmit} disabled={isSubmitting || items.length === 0 || hasItemsWithoutStock} className="h-9 px-4">
+            {isSubmitting ? 'Creando...' : hasItemsWithoutStock ? 'Sin Stock Suficiente' : 'Crear Venta'}
           </Button>
         </DialogFooter>
       </DialogContent>

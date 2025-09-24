@@ -55,8 +55,12 @@ export const useEmployeeSales = () => {
 
       const saleId = await employeeSalesService.createSale(saleData);
 
-      // Refresh sales list after creation
-      await fetchTodaySales();
+      // Refresh sales list after creation usando fecha específica
+      const today = new Date();
+      const localDateString = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+      await fetchSales(localDateString, localDateString);
 
       return saleId;
     } catch (err) {
@@ -67,7 +71,7 @@ export const useEmployeeSales = () => {
     } finally {
       setLoading(false);
     }
-  }, [fetchTodaySales]);
+  }, [fetchSales]);
 
   // Filter sales
   const filterSales = useCallback((
@@ -200,8 +204,12 @@ export const useEmployeeSales = () => {
           // Solo actualizar si no hay modales abiertos
           if (!isModalOpen) {
             try {
-              // Recargar las ventas sin mostrar loading
-              const data = await employeeSalesService.getTodaySales();
+              // Recargar usando la fecha actual específica para evitar problemas de zona horaria
+              const today = new Date();
+              const localDateString = today.getFullYear() + '-' +
+                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                String(today.getDate()).padStart(2, '0');
+              const data = await employeeSalesService.getSales(localDateString, localDateString);
               setSales(data);
             } catch (err) {
               console.error('Error updating employee sales after realtime change:', err);
@@ -219,7 +227,12 @@ export const useEmployeeSales = () => {
 
   // Initialize with today's sales and setup realtime
   useEffect(() => {
-    fetchTodaySales();
+    // Cargar ventas del día usando fecha específica para evitar problemas de zona horaria
+    const today = new Date();
+    const localDateString = today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
+    fetchSales(localDateString, localDateString);
     setupRealtimeSubscription();
 
     // Cleanup subscription on unmount
@@ -228,7 +241,7 @@ export const useEmployeeSales = () => {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, []); // Sin dependencias para evitar re-ejecuciones
+  }, [fetchSales, setupRealtimeSubscription]);
 
   return {
     // State

@@ -16,12 +16,15 @@ export const useSales = () => {
   const [error, setError] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Array<{ user_id: string; full_name: string; category: string; }>>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentDateRange, setCurrentDateRange] = useState<{start?: string; end?: string}>({});
   const subscriptionRef = useRef<any>(null);
 
   const loadSales = useCallback(async (startDate?: string, endDate?: string) => {
     try {
       setLoading(true);
       setError(null);
+      // Actualizar el rango de fechas actual
+      setCurrentDateRange({ start: startDate, end: endDate });
       const data = await salesService.getSales(startDate, endDate);
       setSales(data);
     } catch (err) {
@@ -61,21 +64,31 @@ export const useSales = () => {
     try {
       setError(null);
       const saleId = await salesService.createSale(saleData);
-      await loadTodaySales(); // Reload to show the new sale
+      // Recargar usando la fecha actual específica para evitar problemas de zona horaria
+      const today = new Date();
+      const localDateString = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+      await loadSales(localDateString, localDateString);
       return saleId;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al crear venta';
       setError(errorMessage);
       throw err;
     }
-  }, [loadTodaySales]);
+  }, [loadSales]);
 
   const updateSale = useCallback(async (saleId: string, updateData: UpdateSaleData) => {
     try {
       setError(null);
       const success = await salesService.updateSale(saleId, updateData);
       if (success) {
-        await loadTodaySales(); // Reload to show the updated sale
+        // Recargar usando la fecha actual específica para evitar problemas de zona horaria
+        const today = new Date();
+        const localDateString = today.getFullYear() + '-' +
+          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+          String(today.getDate()).padStart(2, '0');
+        await loadSales(localDateString, localDateString);
       }
       return success;
     } catch (err) {
@@ -83,51 +96,71 @@ export const useSales = () => {
       setError(errorMessage);
       throw err;
     }
-  }, [loadTodaySales]);
+  }, [loadSales]);
 
   const addSaleItem = useCallback(async (saleId: string, productId: string, quantity: number, unitPrice?: number) => {
     try {
       setError(null);
       const itemId = await salesService.addSaleItem(saleId, productId, quantity, unitPrice);
-      await loadTodaySales(); // Reload to show the updated sale
+      // Recargar usando la fecha actual específica para evitar problemas de zona horaria
+      const today = new Date();
+      const localDateString = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+      await loadSales(localDateString, localDateString);
       return itemId;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al agregar item';
       setError(errorMessage);
       throw err;
     }
-  }, [loadTodaySales]);
+  }, [loadSales]);
 
   const updateSaleItem = useCallback(async (itemId: string, quantity?: number, unitPrice?: number): Promise<void> => {
     try {
       setError(null);
       await salesService.updateSaleItem(itemId, quantity, unitPrice);
-      await loadTodaySales(); // Reload to show the updated sale
+      // Recargar usando la fecha actual específica para evitar problemas de zona horaria
+      const today = new Date();
+      const localDateString = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+      await loadSales(localDateString, localDateString);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar item';
       setError(errorMessage);
       throw err;
     }
-  }, [loadTodaySales]);
+  }, [loadSales]);
 
   const removeSaleItem = useCallback(async (itemId: string): Promise<void> => {
     try {
       setError(null);
       await salesService.removeSaleItem(itemId);
-      await loadTodaySales(); // Reload to show the updated sale
+      // Recargar usando la fecha actual específica para evitar problemas de zona horaria
+      const today = new Date();
+      const localDateString = today.getFullYear() + '-' +
+        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+        String(today.getDate()).padStart(2, '0');
+      await loadSales(localDateString, localDateString);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar item';
       setError(errorMessage);
       throw err;
     }
-  }, [loadTodaySales]);
+  }, [loadSales]);
 
   const refundSale = useCallback(async (saleId: string, reason: string): Promise<boolean> => {
     try {
       setError(null);
       const success = await salesService.refundSale(saleId, reason);
       if (success) {
-        await loadTodaySales(); // Reload to show the updated sale
+        // Recargar usando la fecha actual específica para evitar problemas de zona horaria
+        const today = new Date();
+        const localDateString = today.getFullYear() + '-' +
+          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+          String(today.getDate()).padStart(2, '0');
+        await loadSales(localDateString, localDateString);
       }
       return success;
     } catch (err) {
@@ -135,7 +168,7 @@ export const useSales = () => {
       setError(errorMessage);
       throw err;
     }
-  }, [loadTodaySales]);
+  }, [loadSales]);
 
   const getSalesStats = useCallback(async (startDate?: string, endDate?: string): Promise<SaleStats> => {
     try {
@@ -238,8 +271,8 @@ export const useSales = () => {
           // Solo actualizar si no hay modales abiertos
           if (!isModalOpen) {
             try {
-              // Recargar las ventas sin mostrar loading
-              const data = await salesService.getTodaySales();
+              // Recargar usando el mismo rango de fechas que se está mostrando actualmente
+              const data = await salesService.getSales(currentDateRange.start, currentDateRange.end);
               setSales(data);
             } catch (err) {
               console.error('Error updating sales after realtime change:', err);
@@ -256,7 +289,12 @@ export const useSales = () => {
   }, []);
 
   useEffect(() => {
-    loadTodaySales();
+    // Cargar ventas del día usando fecha específica para evitar problemas de zona horaria
+    const today = new Date();
+    const localDateString = today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
+    loadSales(localDateString, localDateString);
     loadEmployees();
     setupRealtimeSubscription();
 
@@ -266,7 +304,7 @@ export const useSales = () => {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, [loadTodaySales, loadEmployees, setupRealtimeSubscription]);
+  }, [loadSales, loadEmployees, setupRealtimeSubscription]);
 
   return {
     sales,

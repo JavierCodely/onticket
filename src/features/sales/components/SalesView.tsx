@@ -60,12 +60,9 @@ export const SalesView: React.FC = () => {
 
   // Función para convertir fecha local a UTC (para consultas a la API)
   const getUTCDate = useCallback((localDate: string) => {
-    // Convertir fecha local a UTC: crear fecha local y obtener su equivalente UTC
-    const [year, month, day] = localDate.split('-').map(Number);
-    const localDateTime = new Date(year, month - 1, day); // Fecha local a medianoche
-    // Obtener el timestamp UTC de esa fecha local
-    const utcDate = new Date(localDateTime.getTime() - localDateTime.getTimezoneOffset() * 60000);
-    return utcDate.toISOString().split('T')[0];
+    // Simplemente devolver la fecha tal como está, sin conversión
+    // La API maneja las fechas correctamente con los formatos de tiempo
+    return localDate;
   }, []);
 
   const [startDate, setStartDate] = useState(() => getTodayLocal());
@@ -131,7 +128,7 @@ export const SalesView: React.FC = () => {
     if (startDate && endDate) {
       if (startDate === endDate) {
         const date = new Date(startDate);
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayLocal();
         if (startDate === today) {
           return 'de Hoy';
         }
@@ -164,14 +161,11 @@ export const SalesView: React.FC = () => {
 
   // Cargar ventas cuando cambien los filtros de fecha
   useEffect(() => {
-    // Siempre usar loadSales con fechas UTC para consistencia
-    const utcStartDate = startDate ? getUTCDate(startDate) : undefined;
-    const utcEndDate = endDate ? getUTCDate(endDate) : undefined;
-
-    loadSales(utcStartDate, utcEndDate).catch(error => {
+    // Usar las fechas directamente sin conversión UTC
+    loadSales(startDate, endDate).catch(error => {
       console.error('Error loading filtered sales:', error);
     });
-  }, [startDate, endDate, getUTCDate]);
+  }, [startDate, endDate, loadSales]);
 
   // Update selected sale when sales data changes
   useEffect(() => {
@@ -225,11 +219,13 @@ export const SalesView: React.FC = () => {
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
-      // Si hay filtros de fecha, cargar con esos filtros, sino cargar del día
+      // Si hay filtros de fecha, cargar con esos filtros, sino cargar del día actual
       if (startDate || endDate) {
         await loadSales(startDate || undefined, endDate || undefined);
       } else {
-        await loadTodaySales();
+        // Usar fecha actual específica para evitar problemas de zona horaria
+        const today = getTodayLocal();
+        await loadSales(today, today);
       }
     } catch (error) {
       console.error('Error refreshing sales:', error);
@@ -464,8 +460,15 @@ export const SalesView: React.FC = () => {
                       const today = new Date();
                       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
                       const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                      setStartDate(monthStart.toISOString().split('T')[0]);
-                      setEndDate(monthEnd.toISOString().split('T')[0]);
+                      // Usar formato local consistente
+                      const formatLocalDate = (date: Date) => {
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                      };
+                      setStartDate(formatLocalDate(monthStart));
+                      setEndDate(formatLocalDate(monthEnd));
                     }}
                     className="text-xs h-8"
                   >
@@ -479,8 +482,8 @@ export const SalesView: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          // Usar el mismo método que funciona para el botón "Mes"
-                          const today = new Date().toISOString().split('T')[0];
+                          // Usar fecha local para consistencia
+                          const today = getTodayLocal();
                           setStartDate(today);
                           setEndDate(today);
                         }}
