@@ -66,12 +66,29 @@ export class CombosService {
     try {
       console.log('🔄 CombosService.getActiveCombos iniciado...');
 
+      // Debug: Ver todos los combos primero
+      const { data: allCombos } = await supabase
+        .from('combos_with_details')
+        .select('id, name, status, is_available, effective_stock, stock_quantity');
+
+      console.log('🔍 Debug - Todos los combos:', allCombos);
+      allCombos?.forEach((combo, index) => {
+        console.log(`🔍 Combo ${index + 1}:`, {
+          name: combo.name,
+          status: combo.status,
+          is_available: combo.is_available,
+          effective_stock: combo.effective_stock,
+          stock_quantity: combo.stock_quantity
+        });
+      });
+
+      // Temporalmente relajar los filtros para debug
       const { data, error } = await supabase
         .from('combos_with_details')
         .select('*')
         .eq('status', 'active')
-        .eq('is_available', true)
-        .gt('effective_stock', 0)
+        // .eq('is_available', true)  // Comentado temporalmente
+        // .gt('effective_stock', 0)  // Comentado temporalmente
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
 
