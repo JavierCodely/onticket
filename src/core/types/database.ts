@@ -331,4 +331,125 @@ export interface PromotionPriceResult {
   total_savings: number;
 }
 
+// ========================================
+// COMBO SYSTEM TYPES - INDEPENDIENTE DE PROMOCIONES
+// ========================================
+
+export type ComboStatus = 'active' | 'paused' | 'inactive';
+
+export interface Combo {
+  id: string;
+  club_id: string;
+  name: string;
+  description?: string;
+  combo_price: number;
+  stock_quantity: number;
+  min_stock_alert: number;
+  max_uses?: number;
+  current_uses: number;
+  min_combo_per_client: number;
+  max_combo_per_client: number;
+  status: ComboStatus;
+  priority: number;
+  created_by?: string;
+  updated_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ComboItemDetail {
+  product_id: string;
+  product_name: string;
+  product_sku?: string;
+  product_category?: string;
+  quantity_per_combo: number;
+  unit_price: number;
+  total_price_per_combo: number;
+  available_stock: number;
+  display_order: number;
+}
+
+export interface ComboWithDetails extends Combo {
+  combo_items: ComboItemDetail[];
+  original_total_price: number;
+  final_price: number;
+  savings_amount: number;
+  savings_percentage: number;
+  effective_stock: number;
+  is_available: boolean;
+  is_low_stock: boolean;
+  items_count: number;
+  created_by_name: string;
+  updated_by_name: string;
+}
+
+export interface ComboUsageLog {
+  id: string;
+  combo_id: string;
+  sale_id?: string;
+  customer_identifier?: string;
+  employee_id: string;
+  employee_name: string;
+  combo_quantity: number;
+  unit_price: number;
+  total_price: number;
+  usage_date: string;
+  created_at: string;
+}
+
+export interface CreateComboData {
+  name: string;
+  description?: string;
+  combo_price: number;
+  stock_quantity: number;
+  min_combo_per_client: number;
+  max_combo_per_client: number;
+  max_uses?: number;
+  combo_items: Array<{
+    product_id: string;
+    quantity_per_combo: number;
+  }>;
+}
+
+export interface UpdateComboData {
+  name?: string;
+  description?: string;
+  combo_price?: number;
+  stock_quantity?: number;
+  min_combo_per_client?: number;
+  max_combo_per_client?: number;
+  max_uses?: number; // -1 para sin límite
+  status?: ComboStatus;
+}
+
+export interface ComboValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+export interface ComboStats {
+  total_combos: number;
+  active_combos: number;
+  paused_combos: number;
+  low_stock_combos: number;
+  period_stats: {
+    total_sales: number;
+    total_revenue: number;
+    avg_combo_price: number;
+    top_combos: Array<{
+      combo_name: string;
+      sales_count: number;
+      revenue: number;
+    }>;
+  };
+}
+
+export interface ComboFilters {
+  status?: ComboStatus | 'all';
+  start_date?: string;
+  end_date?: string;
+  search_term?: string;
+  low_stock_only?: boolean;
+}
+
 

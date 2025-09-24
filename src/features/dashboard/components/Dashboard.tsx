@@ -7,6 +7,7 @@ import { ProductsView } from '@/features/products';
 import { SalesView } from '@/features/sales';
 import { PaymentsPage } from '@/features/payments/components/PaymentsPage';
 import { PromotionsPage } from '@/features/promotions';
+import { CombosPage } from '@/features/combos';
 import { DashboardSidebar } from './DashboardSidebar';
 import { DashboardHeader } from './DashboardHeader';
 import { OverviewPage } from './OverviewPage';
@@ -26,6 +27,8 @@ export const Dashboard: React.FC = () => {
         return <SalesView />;
       case 'promotions':
         return <PromotionsPage />;
+      case 'combos':
+        return <CombosPage />;
       case 'calendar':
         return <CalendarView />;
       case 'employees':
