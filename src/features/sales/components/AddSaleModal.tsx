@@ -158,9 +158,13 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     const itemsWithStockIssues: string[] = [];
     const updatedItemsStock: { [key: string]: number } = {};
 
-    // Consultar stock actual de cada producto del carrito directamente
+    // Consultar stock actual de cada producto del carrito directamente (excluyendo displays de combo)
     try {
-      const productIds = [...new Set(items.map(item => item.product_id))];
+      const productIds = [...new Set(
+        items
+          .filter(item => !item.is_combo_display) // Excluir displays de combo
+          .map(item => item.product_id)
+      )];
       console.log('Checking stock for product IDs:', productIds);
 
       const { data: currentProducts, error: stockError } = await supabase
@@ -174,9 +178,25 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       }
 
       if (currentProducts) {
+        // Crear un mapa para trackear productos ya validados (evita duplicados)
+        const validatedProducts = new Map<string, boolean>();
+
         for (const item of items) {
+          // Solo saltar displays de combo, los items de combo SÍ usan stock real
+          if (item.is_combo_display) {
+            continue;
+          }
+
+          // Si ya validamos este producto, continuar
+          if (validatedProducts.has(item.product_id)) {
+            continue;
+          }
+
           const currentProduct = currentProducts.find(p => p.id === item.product_id);
-          const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
+          // Calcular total incluyendo items de combo (excluir solo displays)
+          const totalQuantityInCart = items
+            .filter(i => i.product_id === item.product_id && !i.is_combo_display)
+            .reduce((total, i) => total + i.quantity, 0);
           const currentStock = currentProduct?.available_stock || 0;
 
           updatedItemsStock[item.product_id] = currentStock;
@@ -192,6 +212,9 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           if (totalQuantityInCart > currentStock) {
             itemsWithStockIssues.push(currentProduct?.name || item.product_name);
           }
+
+          // Marcar este producto como validado
+          validatedProducts.set(item.product_id, true);
         }
 
         if (itemsWithStockIssues.length > 0) {
@@ -353,62 +376,6 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   //   }
   // }, [stockConflicts, items, isSubmitting]);
 
-  const availableProducts = searchTerm ? products.filter(product => {
-    const isActive = product.status === 'active';
-    const hasStock = product.available_stock > 0;
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return isActive && hasStock && matchesSearch;
-  }) : [];
-
-  // Filtrar combos que coincidan con la búsqueda
-  const availableCombos_filtered = searchTerm ? availableCombos.filter(combo => {
-    const isAvailable = combo.status === 'active';
-    const hasStock = combo.effective_stock > 0;
-    const matchesSearch = combo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         searchTerm.toLowerCase().includes('combo');
-
-    console.log(`🔍 Admin Filtro combo "${combo.name}":`, {
-      status: combo.status,
-      isAvailable,
-      hasStock,
-      effective_stock: combo.effective_stock,
-      matchesSearch,
-      searchTerm,
-      willShow: isAvailable && hasStock && matchesSearch
-    });
-
-    return isAvailable && hasStock && matchesSearch;
-  }) : [];
-
-
-  // Filtrar promociones que coincidan con la búsqueda Y que tengan stock disponible
-  const availablePromotions = searchTerm ? activePromotions.filter(promotion => {
-    const matchesSearch = promotion.status === 'active' &&
-      promotion.is_available &&
-      (promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       (promotion.product_name && promotion.product_name.toLowerCase().includes(searchTerm.toLowerCase())));
-
-    if (!matchesSearch) return false;
-
-    // Verificar stock para promociones individuales
-    if (promotion.promotion_type !== 'combo' && promotion.product_id) {
-      const product = products.find(p => p.id === promotion.product_id);
-      return product && product.available_stock > 0;
-    }
-
-    // Para combos, verificar que todos los productos tengan stock
-    if (promotion.promotion_type === 'combo' && promotion.combo_items) {
-      const comboItems = Array.isArray(promotion.combo_items) ? promotion.combo_items : [];
-      return comboItems.every(item => {
-        const product = products.find(p => p.id === item.product_id);
-        return product && product.available_stock >= (item.quantity || 1);
-      });
-    }
-
-    return true; // Para otros tipos de promociones
-  }) : [];
-
   // Determinar si usar precio de costo (admin) o precio de venta (empleado)
   const isAdminSale = selectedEmployeeRole === 'admin';
   const getPriceForProduct = (product: any) => {
@@ -425,7 +392,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     let price;
     if (item.promotion_data && item.promotion_data.has_promotion) {
       price = item.promotion_data.final_price;
+    } else if (item.is_combo_display) {
+      // Los combos SIEMPRE usan su precio original, sin importar el rol
+      price = item.unit_price;
     } else {
+      // Solo productos normales cambian según el rol admin/empleado
       price = isAdminSale && item.product_cost_price ? item.product_cost_price : (item.unit_price || item.product_sale_price);
     }
 
@@ -494,6 +465,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
     // Actualizar precios de items existentes cuando cambia el rol
     setItems(prevItems => prevItems.map(item => {
+      // NO cambiar precios de combos (displays o items)
+      if (item.is_combo_display || item.is_combo_item) {
+        return item; // Mantener precio original del combo
+      }
+
       if (item.promotion_data && item.promotion_data.has_promotion) {
         // Para items con promoción
         if (role === 'admin') {
@@ -520,7 +496,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           };
         }
       } else {
-        // Para items sin promoción
+        // Para items sin promoción (solo productos normales)
         return {
           ...item,
           unit_price: role === 'admin' ? item.product_cost_price : item.product_sale_price
@@ -530,6 +506,12 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   };
 
   const addProduct = (productId: string, forceNormalPrice: boolean = false) => {
+    // Validar que hay empleado seleccionado
+    if (!hasValidEmployee) {
+      alert('⚠️ Primero debes seleccionar un empleado antes de agregar productos.');
+      return;
+    }
+
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
@@ -603,11 +585,57 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   };
 
   // Función auxiliar para calcular cantidad total de un producto en el carrito
+  // Solo excluye displays, incluye items de combo porque usan stock real
   const getTotalQuantityInCart = (productId: string): number => {
     return items
-      .filter(item => item.product_id === productId)
+      .filter(item =>
+        item.product_id === productId &&
+        !item.is_combo_display  // Solo excluir displays, items de combo SÍ usan stock
+      )
       .reduce((total, item) => total + item.quantity, 0);
   };
+
+  // Verificar que hay empleado seleccionado (dropdown o manual con al menos 3 caracteres)
+  const hasValidEmployee = formData.employee_user_id || (formData.employee_name && formData.employee_name.trim().length >= 3);
+
+  // Listas filtradas (después de definir hasValidEmployee y getTotalQuantityInCart)
+  const availableProducts = (!hasValidEmployee || !searchTerm) ? [] : products.filter(product => {
+    const isActive = product.status === 'active';
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Calcular cuánto stock está siendo usado en el carrito
+    const quantityInCart = getTotalQuantityInCart(product.id);
+    const availableToAdd = product.available_stock - quantityInCart;
+    const hasStock = availableToAdd > 0;
+
+    return isActive && hasStock && matchesSearch;
+  });
+
+  const availableCombos_filtered = (!hasValidEmployee || !searchTerm) ? [] : availableCombos.filter(combo => {
+    const isAvailable = combo.status === 'active';
+    const hasStock = combo.effective_stock > 0;
+    const matchesSearch = combo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         searchTerm.toLowerCase().includes('combo');
+    return isAvailable && hasStock && matchesSearch;
+  });
+
+  const availablePromotions = (!hasValidEmployee || !searchTerm) ? [] : activePromotions.filter(promotion => {
+    const matchesSearch = promotion.status === 'active' &&
+      promotion.is_available &&
+      (promotion.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       (promotion.product_name && promotion.product_name.toLowerCase().includes(searchTerm.toLowerCase())));
+
+    // Validar stock para promociones de combo
+    if (promotion.promotion_type === 'combo' && promotion.combo_items) {
+      const comboItems = JSON.parse(promotion.combo_items as string);
+      return comboItems.every((item: any) => {
+        const product = products.find(p => p.id === item.product_id);
+        return product && product.available_stock >= (item.quantity || 1);
+      });
+    }
+
+    return true; // Para otros tipos de promociones
+  });
 
   // Función para remover combo completo (display + items)
   const removeCombo = (comboId: string) => {
@@ -616,6 +644,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
   // Función para agregar combo al carrito
   const handleAddComboToCart = useCallback((combo: ComboWithDetails) => {
+    // Validar que hay empleado seleccionado
+    if (!hasValidEmployee) {
+      alert('⚠️ Primero debes seleccionar un empleado antes de agregar combos.');
+      return;
+    }
     console.log('Admin: Agregando combo al carrito:', combo.name);
     console.log('💰 Datos completos del combo:', {
       combo_price: combo.combo_price,
@@ -639,9 +672,16 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       return;
     }
 
-    // Verificar stock de productos individuales considerando lo que ya hay en el carrito
+    // Verificar stock de productos individuales considerando lo que ya hay en el carrito (INCLUYE items de combo)
     for (const comboItem of combo.combo_items) {
-      const currentQuantityInCart = getTotalQuantityInCart(comboItem.product_id);
+      // Calcular total en carrito incluyendo items de combo
+      const currentQuantityInCart = items
+        .filter(item =>
+          item.product_id === comboItem.product_id &&
+          !item.is_combo_display  // Excluir solo displays, incluir items de combo
+        )
+        .reduce((total, item) => total + item.quantity, 0);
+
       const totalNeeded = currentQuantityInCart + comboItem.quantity_per_combo;
 
       if (totalNeeded > comboItem.available_stock) {
@@ -740,19 +780,70 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     setSearchTerm('');
 
     console.log(`Admin: Combo "${combo.name}" agregado al carrito con ${combo.combo_items.length} productos`);
-  }, [items]);
+  }, [items, hasValidEmployee]);
 
-  // Verificar si hay items sin stock suficiente
-  const hasItemsWithoutStock = items.some(item => {
-    const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
-    return totalQuantityInCart > item.available_stock;
-  });
+  // Verificar si hay combos en el carrito
+  const hasComboItems = items.some(item => item.is_combo_display || item.is_combo_item);
+
+  // Verificar si hay items sin stock suficiente (excluyendo displays de combo)
+  const hasItemsWithoutStock = (() => {
+    const productStockMap = new Map<string, { needed: number, available: number }>();
+
+    // Consolidar necesidades por producto
+    items.forEach(item => {
+      if (item.is_combo_display) return; // Excluir displays
+
+      if (!productStockMap.has(item.product_id)) {
+        productStockMap.set(item.product_id, {
+          needed: 0,
+          available: item.available_stock
+        });
+      }
+
+      const productData = productStockMap.get(item.product_id)!;
+      productData.needed += item.quantity;
+    });
+
+    // Verificar si algún producto no tiene suficiente stock
+    for (const [productId, data] of productStockMap) {
+      if (data.needed > data.available) {
+        return true;
+      }
+    }
+
+    return false;
+  })();
 
   // Obtener items sin stock para mostrar advertencia
-  const itemsWithoutStock = items.filter(item => {
-    const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
-    return totalQuantityInCart > item.available_stock;
-  });
+  const itemsWithoutStock = (() => {
+    const productStockMap = new Map<string, { needed: number, available: number, item: any }>();
+
+    // Consolidar por producto
+    items.forEach(item => {
+      if (item.is_combo_display) return;
+
+      if (!productStockMap.has(item.product_id)) {
+        productStockMap.set(item.product_id, {
+          needed: 0,
+          available: item.available_stock,
+          item: item
+        });
+      }
+
+      const productData = productStockMap.get(item.product_id)!;
+      productData.needed += item.quantity;
+    });
+
+    // Retornar items que no tienen suficiente stock
+    const result = [];
+    for (const [productId, data] of productStockMap) {
+      if (data.needed > data.available) {
+        result.push(data.item);
+      }
+    }
+
+    return result;
+  })();
 
   // Función auxiliar para verificar si se puede incrementar un item
   const checkCanIncrementItem = (item: SaleItemForm): boolean => {
@@ -787,6 +878,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   };
 
   const addPromotion = (promotion: PromotionWithDetails) => {
+    // Validar que hay empleado seleccionado
+    if (!hasValidEmployee) {
+      alert('⚠️ Primero debes seleccionar un empleado antes de agregar promociones.');
+      return;
+    }
     if (promotion.promotion_type === 'combo') {
       // Para combos, agregar todos los productos del combo
       if (promotion.combo_items) {
@@ -1042,18 +1138,37 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     // Validar stock antes de proceder
     const validateStockAvailability = () => {
       const conflicts: {productId: string, productName: string, requested: number, available: number}[] = [];
+      const productStockMap = new Map<string, { needed: number, available: number, name: string }>();
+
+      // Consolidar necesidades por producto (igual que hasItemsWithoutStock)
       items.forEach(item => {
-        const currentProduct = products.find(p => p.id === item.product_id);
-        if (!currentProduct || currentProduct.available_stock < item.quantity) {
-          const availableStock = currentProduct?.available_stock || 0;
-          conflicts.push({
-            productId: item.product_id,
-            productName: item.product_name,
-            requested: item.quantity,
-            available: availableStock
+        if (item.is_combo_display) return; // Excluir displays
+
+        if (!productStockMap.has(item.product_id)) {
+          const currentProduct = products.find(p => p.id === item.product_id);
+          productStockMap.set(item.product_id, {
+            needed: 0,
+            available: currentProduct?.available_stock || 0,
+            name: item.product_name
           });
         }
+
+        const productData = productStockMap.get(item.product_id)!;
+        productData.needed += item.quantity;
       });
+
+      // Verificar conflictos
+      for (const [productId, data] of productStockMap) {
+        if (data.needed > data.available) {
+          conflicts.push({
+            productId: productId,
+            productName: data.name,
+            requested: data.needed,
+            available: data.available
+          });
+        }
+      }
+
       return conflicts;
     };
 
@@ -1149,16 +1264,22 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
             <div className="w-80 flex flex-col space-y-3">
               {/* Mensaje informativo para ventas de admin */}
               {isAdminSale && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className={`rounded-lg p-3 ${hasComboItems ? 'bg-red-50 border border-red-200' : 'bg-blue-50 border border-blue-200'}`}>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-blue-700 font-medium text-sm">
+                    <div className={`w-2 h-2 rounded-full ${hasComboItems ? 'bg-red-500' : 'bg-blue-500'}`}></div>
+                    <span className={`font-medium text-sm ${hasComboItems ? 'text-red-700' : 'text-blue-700'}`}>
                       Venta de Administrador
                     </span>
                   </div>
-                  <p className="text-blue-600 text-xs mt-1">
-                    Las ventas de admin se realizan con precios de compra
-                  </p>
+                  {hasComboItems ? (
+                    <p className="text-red-600 text-xs mt-1">
+                      ⚠️ Los administradores no pueden vender combos. Elimina los combos del carrito.
+                    </p>
+                  ) : (
+                    <p className="text-blue-600 text-xs mt-1">
+                      Las ventas de admin se realizan con precios de compra
+                    </p>
+                  )}
                 </div>
               )}
               {/* Empleado */}
@@ -1192,6 +1313,20 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                     setSelectedEmployeeRole('');
                     // Actualizar precios de items existentes cuando se cambia manualmente (usar precio de venta)
                     setItems(prevItems => prevItems.map(item => {
+                      console.log(`🔍 Manual employee change - Checking item:`, {
+                        name: item.product_name,
+                        is_combo_display: item.is_combo_display,
+                        is_combo_item: item.is_combo_item,
+                        unit_price: item.unit_price,
+                        will_skip: item.is_combo_display || item.is_combo_item
+                      });
+
+                      // NO cambiar precios de combos (displays o items)
+                      if (item.is_combo_display || item.is_combo_item) {
+                        console.log(`✅ Manual change - Skipping combo item: ${item.product_name}`);
+                        return item; // Mantener precio original del combo
+                      }
+
                       if (item.promotion_data && item.promotion_data.promotion_id) {
                         // Para items con promoción, reactivar la promoción (no es admin)
                         return {
@@ -1308,9 +1443,10 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar productos..."
+                  placeholder={hasValidEmployee ? "Buscar productos..." : "Primero selecciona un empleado..."}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  disabled={!hasValidEmployee}
                   className="pl-10 h-9"
                 />
               </div>
@@ -1387,6 +1523,17 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                               Ahorras: ${combo.savings_amount.toFixed(2)} ({combo.savings_percentage.toFixed(0)}%)
                             </span>
                           </div>
+                          {/* Stock disponible */}
+                          <div className="flex items-center gap-2 text-xs mt-1">
+                            <span className={`font-medium ${combo.effective_stock <= 2 ? 'text-red-600' : 'text-green-600'}`}>
+                              Stock: {combo.effective_stock}
+                            </span>
+                            {combo.effective_stock <= 2 && combo.effective_stock > 0 && (
+                              <span className="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs">
+                                Bajo
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="text-right">
                           <div className="text-sm text-gray-500">
@@ -1421,7 +1568,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                         <div className="flex-1 cursor-pointer" onClick={() => addProduct(product.id)}>
                           <p className="font-medium text-sm">{product.name}</p>
                           <p className="text-xs text-gray-500">
-                            Stock: {product.available_stock} | ${getPriceForProduct(product)}
+                            {(() => {
+                              const quantityInCart = getTotalQuantityInCart(product.id);
+                              const availableToAdd = product.available_stock - quantityInCart;
+                              return `Stock: ${product.available_stock}${quantityInCart > 0 ? ` (${availableToAdd} disponible)` : ''} | $${getPriceForProduct(product)}`;
+                            })()}
                             {isAdminSale && (
                               <span className="text-blue-600 font-medium"> (Precio Admin)</span>
                             )}
@@ -1455,9 +1606,22 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                 })}
 
                 {/* Mensaje cuando no hay resultados */}
-                {availablePromotions.length === 0 && availableProducts.length === 0 && (
+                {!hasValidEmployee && searchTerm && (
+                  <div className="p-4 text-center text-orange-600 text-sm">
+                    <div className="font-medium">⚠️ Empleado requerido</div>
+                    <div className="mt-1">Selecciona un empleado antes de buscar productos</div>
+                  </div>
+                )}
+
+                {hasValidEmployee && availablePromotions.length === 0 && availableProducts.length === 0 && availableCombos_filtered.length === 0 && searchTerm && (
                   <div className="p-4 text-center text-gray-500 text-sm">
-                    No se encontraron productos ni promociones
+                    No se encontraron productos, combos ni promociones
+                  </div>
+                )}
+
+                {!searchTerm && (
+                  <div className="p-4 text-center text-gray-400 text-sm">
+                    {hasValidEmployee ? 'Escribe para buscar productos, combos y promociones' : 'Selecciona un empleado para comenzar'}
                   </div>
                 )}
 
@@ -1737,8 +1901,8 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
           <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="h-9 px-4">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || items.length === 0 || hasItemsWithoutStock} className="h-9 px-4">
-            {isSubmitting ? 'Creando...' : hasItemsWithoutStock ? 'Sin Stock Suficiente' : 'Crear Venta'}
+          <Button onClick={handleSubmit} disabled={isSubmitting || items.length === 0 || hasItemsWithoutStock || (isAdminSale && hasComboItems)} className="h-9 px-4">
+            {isSubmitting ? 'Creando...' : hasItemsWithoutStock ? 'Sin Stock Suficiente' : (isAdminSale && hasComboItems) ? 'Admin no puede vender combos' : 'Crear Venta'}
           </Button>
         </DialogFooter>
       </DialogContent>

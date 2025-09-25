@@ -518,11 +518,17 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
   //   }
   // }, [stockConflicts, items, isSubmitting]);
 
-  const availableProducts = searchTerm ? products.filter(product =>
-    product.status === 'active' &&
-    product.available_stock > 0 &&
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+  const availableProducts = searchTerm ? products.filter(product => {
+    const isActive = product.status === 'active';
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Calcular cuánto stock está siendo usado en el carrito
+    const quantityInCart = getTotalQuantityInCart(product.id);
+    const availableToAdd = product.available_stock - quantityInCart;
+    const hasStock = availableToAdd > 0;
+
+    return isActive && hasStock && matchesSearch;
+  }) : [];
 
   // Filtrar promociones que coincidan con la búsqueda Y que tengan stock disponible
   const availablePromotions = searchTerm ? activePromotions.filter(promotion => {
@@ -1521,7 +1527,11 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                           <div className="flex-1 cursor-pointer" onClick={() => addProduct(product.id)}>
                             <p className="font-medium text-sm">{product.name}</p>
                             <p className="text-xs text-gray-500">
-                              Stock: {product.available_stock} | ${product.sale_price}
+                              {(() => {
+                                const quantityInCart = getTotalQuantityInCart(product.id);
+                                const availableToAdd = product.available_stock - quantityInCart;
+                                return `Stock: ${product.available_stock}${quantityInCart > 0 ? ` (${availableToAdd} disponible)` : ''} | $${product.sale_price}`;
+                              })()}
                             </p>
                           </div>
                           <div className="flex gap-1">
