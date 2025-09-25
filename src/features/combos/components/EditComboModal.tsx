@@ -367,11 +367,11 @@ export function EditComboModal({ combo, open, onOpenChange }: EditComboModalProp
                 </div>
               </div>
 
-              {combo.is_low_stock && (
+              {combo.effective_stock <= 2 && (
                 <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <AlertCircle className="h-4 w-4 text-yellow-600" />
                   <div className="text-sm text-yellow-700">
-                    <strong>Stock bajo:</strong> Este combo tiene stock por debajo del nivel de alerta ({combo.min_stock_alert}).
+                    <strong>Stock bajo:</strong> Este combo tiene stock muy limitado (solo {combo.effective_stock} combos disponibles).
                   </div>
                 </div>
               )}

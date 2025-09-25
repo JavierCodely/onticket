@@ -231,7 +231,7 @@ export function CombosPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {combos.filter(c => c.is_low_stock).length}
+              {combos.filter(c => c.effective_stock <= 2).length}
             </div>
           </CardContent>
         </Card>
@@ -395,7 +395,7 @@ export function CombosPage() {
                           <div className="font-medium">
                             {combo.effective_stock}
                           </div>
-                          {combo.is_low_stock && (
+                          {combo.effective_stock <= 2 && (
                             <Badge variant="destructive" className="text-xs">
                               Bajo
                             </Badge>
@@ -405,20 +405,20 @@ export function CombosPage() {
                           {combo.combo_items.map((item) => {
                             const maxCombosFromThisProduct = Math.floor(item.available_stock / item.quantity_per_combo);
                             const isLimitingFactor = maxCombosFromThisProduct === combo.effective_stock;
-                            const isLowStock = item.available_stock < item.quantity_per_combo * 10; // Considera bajo si no puede hacer 10 combos
+                            // Solo mostrar advertencia si el stock es insuficiente para hacer al menos 1 combo
+                            const isLowStock = item.available_stock < item.quantity_per_combo;
 
                             return (
                               <div
                                 key={item.product_id}
-                                className={`flex justify-between ${isLimitingFactor ? 'font-medium text-red-600' : ''}`}
+                                className={`flex justify-between ${isLimitingFactor && combo.effective_stock === 0 ? 'font-medium text-red-600' : ''}`}
                               >
                                 <span className="truncate">
                                   {item.product_name}:
                                 </span>
                                 <span>
                                   {item.available_stock}/{item.quantity_per_combo}
-                                  {isLimitingFactor && ' ⚠️'}
-                                  {isLowStock && !isLimitingFactor && ' ⚠️'}
+                                  {isLowStock && ' ⚠️'}
                                 </span>
                               </div>
                             );
