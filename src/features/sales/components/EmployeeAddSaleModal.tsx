@@ -121,9 +121,16 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       return;
     }
 
-    // Verificar stock de productos individuales considerando lo que ya hay en el carrito
+    // Verificar stock de productos individuales considerando lo que ya hay en el carrito (INCLUYE items de combo)
     for (const comboItem of combo.combo_items) {
-      const currentQuantityInCart = getTotalQuantityInCart(comboItem.product_id);
+      // Calcular total en carrito incluyendo items de combo
+      const currentQuantityInCart = items
+        .filter(item =>
+          item.product_id === comboItem.product_id &&
+          !item.is_combo_display  // Excluir solo displays, incluir items de combo
+        )
+        .reduce((total, item) => total + item.quantity, 0);
+
       const totalNeeded = currentQuantityInCart + comboItem.quantity_per_combo;
 
       if (totalNeeded > comboItem.available_stock) {
@@ -315,8 +322,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
         const validatedProducts = new Map<string, boolean>();
 
         for (const item of items) {
-          // Solo validar stock para productos reales, no para displays ni items de combo
-          if (item.is_combo_display || item.is_combo_item) {
+          // Solo saltar displays de combo, los items de combo SÍ usan stock real
+          if (item.is_combo_display) {
             continue;
           }
 
@@ -326,7 +333,10 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
           }
 
           const currentProduct = currentProducts.find(p => p.id === item.product_id);
-          const totalQuantityInCart = getTotalQuantityInCart(item.product_id); // Solo productos normales, no items de combo
+          // Calcular total incluyendo items de combo (excluir solo displays)
+          const totalQuantityInCart = items
+            .filter(i => i.product_id === item.product_id && !i.is_combo_display)
+            .reduce((total, i) => total + i.quantity, 0);
           const currentStock = currentProduct?.available_stock || 0;
 
           updatedItemsStock[item.product_id] = currentStock;
@@ -831,12 +841,12 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
   };
 
   // Función auxiliar para calcular cantidad total de un producto en el carrito
+  // Solo excluye displays, incluye items de combo porque usan stock real
   const getTotalQuantityInCart = (productId: string): number => {
     return items
       .filter(item =>
         item.product_id === productId &&
-        !item.is_combo_display &&
-        !item.is_combo_item  // Excluir items de combo, ya que el combo maneja su propio stock
+        !item.is_combo_display  // Solo excluir displays, items de combo SÍ usan stock
       )
       .reduce((total, item) => total + item.quantity, 0);
   };
@@ -1089,19 +1099,36 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
   // Función para validar stock antes de crear venta
   const validateStockAvailability = () => {
     const conflicts: {productId: string, productName: string, requested: number, available: number}[] = [];
+    const productStockMap = new Map<string, { needed: number, available: number, name: string }>();
 
+    // Consolidar necesidades por producto (igual que hasItemsWithoutStock)
     items.forEach(item => {
-      const currentProduct = products.find(p => p.id === item.product_id);
-      if (!currentProduct || currentProduct.available_stock <= item.quantity) {
-        const availableStock = currentProduct?.available_stock || 0;
-        conflicts.push({
-          productId: item.product_id,
-          productName: item.product_name,
-          requested: item.quantity,
-          available: availableStock
+      if (item.is_combo_display) return; // Excluir displays
+
+      if (!productStockMap.has(item.product_id)) {
+        const currentProduct = products.find(p => p.id === item.product_id);
+        productStockMap.set(item.product_id, {
+          needed: 0,
+          available: currentProduct?.available_stock || 0,
+          name: item.product_name
         });
       }
+
+      const productData = productStockMap.get(item.product_id)!;
+      productData.needed += item.quantity;
     });
+
+    // Verificar conflictos
+    for (const [productId, data] of productStockMap) {
+      if (data.needed > data.available) {
+        conflicts.push({
+          productId: productId,
+          productName: data.name,
+          requested: data.needed,
+          available: data.available
+        });
+      }
+    }
 
     return conflicts;
   };
@@ -1422,10 +1449,10 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                           {/* Stock y límites */}
                           <div className="mt-2 space-y-1">
                             <div className="flex items-center gap-2 text-xs">
-                              <span className={`font-medium ${combo.effective_stock <= 5 ? 'text-red-600' : 'text-green-600'}`}>
+                              <span className={`font-medium ${combo.effective_stock <= 2 ? 'text-red-600' : 'text-green-600'}`}>
                                 Stock: {combo.effective_stock}
                               </span>
-                              {combo.effective_stock <= 5 && combo.effective_stock > 0 && (
+                              {combo.effective_stock <= 2 && combo.effective_stock > 0 && (
                                 <span className="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs">
                                   Bajo
                                 </span>
