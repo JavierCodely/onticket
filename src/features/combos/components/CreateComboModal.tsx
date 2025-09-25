@@ -44,10 +44,10 @@ export function CreateComboModal({ open, onOpenChange }: CreateComboModalProps) 
     name: '',
     description: '',
     combo_price: '',
-    stock_quantity: '0',
     min_combo_per_client: '1',
     max_combo_per_client: '1',
-    max_uses: ''
+    max_quantity_per_sale: '1',
+    total_usage_limit: ''
   });
 
   // Precios calculados
@@ -69,10 +69,10 @@ export function CreateComboModal({ open, onOpenChange }: CreateComboModalProps) 
         name: '',
         description: '',
         combo_price: '',
-        stock_quantity: '0',
         min_combo_per_client: '1',
         max_combo_per_client: '1',
-        max_uses: ''
+        max_quantity_per_sale: '1',
+        total_usage_limit: ''
       });
       clearSearch();
     }
@@ -157,10 +157,10 @@ export function CreateComboModal({ open, onOpenChange }: CreateComboModalProps) 
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         combo_price: parseFloat(formData.combo_price),
-        stock_quantity: parseInt(formData.stock_quantity),
         min_combo_per_client: parseInt(formData.min_combo_per_client),
         max_combo_per_client: parseInt(formData.max_combo_per_client),
-        max_uses: formData.max_uses ? parseInt(formData.max_uses) : undefined,
+        max_quantity_per_sale: parseInt(formData.max_quantity_per_sale),
+        total_usage_limit: formData.total_usage_limit ? parseInt(formData.total_usage_limit) : undefined,
         combo_items: selectedProducts.map(cp => ({
           product_id: cp.product.id,
           quantity_per_combo: cp.quantity_per_combo
@@ -495,34 +495,44 @@ export function CreateComboModal({ open, onOpenChange }: CreateComboModalProps) 
               </CardContent>
             </Card>
 
-            {/* Configuración de stock y límites */}
+            {/* Configuración de límites */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Stock y Límites</CardTitle>
+                <CardTitle className="text-base">Límites de Uso</CardTitle>
+                <CardDescription>
+                  El stock se calcula automáticamente basado en los productos componentes
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="stock_quantity">Stock inicial</Label>
+                    <Label htmlFor="max_quantity_per_sale">Máximo por venta *</Label>
                     <Input
-                      id="stock_quantity"
+                      id="max_quantity_per_sale"
                       type="number"
-                      min="0"
-                      value={formData.stock_quantity}
-                      onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
+                      min="1"
+                      value={formData.max_quantity_per_sale}
+                      onChange={(e) => setFormData(prev => ({ ...prev, max_quantity_per_sale: e.target.value }))}
+                      required
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Máximo de combos en una sola venta
+                    </p>
                   </div>
 
                   <div>
-                    <Label htmlFor="max_uses">Máximo de usos (opcional)</Label>
+                    <Label htmlFor="total_usage_limit">Límite total de usos</Label>
                     <Input
-                      id="max_uses"
+                      id="total_usage_limit"
                       type="number"
                       min="1"
-                      value={formData.max_uses}
-                      onChange={(e) => setFormData(prev => ({ ...prev, max_uses: e.target.value }))}
+                      value={formData.total_usage_limit}
+                      onChange={(e) => setFormData(prev => ({ ...prev, total_usage_limit: e.target.value }))}
                       placeholder="Sin límite"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Total de combos que se pueden vender (opcional)
+                    </p>
                   </div>
                 </div>
 

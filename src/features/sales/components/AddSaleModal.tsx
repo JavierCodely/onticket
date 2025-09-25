@@ -76,6 +76,19 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   const fetchCombos = useCallback(async () => {
     try {
       const combos = await CombosService.getActiveCombos();
+      console.log('🔍 ADMIN: Combos cargados desde servicio:', combos.map(c => ({ id: c.id, name: c.name })));
+
+      // Verificar duplicados
+      const ids = combos.map(c => c.id);
+      const uniqueIds = [...new Set(ids)];
+      if (ids.length !== uniqueIds.length) {
+        console.warn('⚠️ ADMIN: ¡Combos duplicados detectados!', {
+          total: ids.length,
+          unique: uniqueIds.length,
+          duplicates: ids.length - uniqueIds.length
+        });
+      }
+
       setAvailableCombos(combos);
     } catch (error) {
       console.error('Error loading combos:', error);
@@ -225,14 +238,50 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         }
       });
 
+      // Recolectar combos usados
+      const combosUsed: Array<{combo_id: string, quantity: number}> = [];
+      console.log('🔍 ADMIN: Revisando items para combos:', items.map(i => ({
+        id: i.id,
+        name: i.product_name,
+        combo_id: i.combo_id,
+        is_combo_display: i.is_combo_display,
+        is_combo_item: i.is_combo_item
+      })));
+
+      items.forEach(item => {
+        if (item.combo_id && item.is_combo_display) {
+          console.log('🎯 ADMIN: Encontrado combo display:', {
+            combo_id: item.combo_id,
+            combo_name: item.combo_name,
+            quantity: item.quantity
+          });
+
+          // Solo contar los displays de combo (no los items individuales)
+          const existingCombo = combosUsed.find(c => c.combo_id === item.combo_id);
+          if (!existingCombo) {
+            combosUsed.push({
+              combo_id: item.combo_id,
+              quantity: item.quantity
+            });
+          } else {
+            // Incrementar si ya existe
+            existingCombo.quantity += item.quantity;
+          }
+        }
+      });
+
+      console.log('🎯 ADMIN: Combos recolectados para uso:', combosUsed);
+
       const saleData: CreateSaleData = {
         employee_user_id: formData.employee_user_id || undefined,
         employee_name: formData.employee_name,
-        items: items.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price
-        })),
+        items: items
+          .filter(item => !item.is_combo_display) // Excluir displays de combo
+          .map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price
+          })),
         payment_method: formData.payment_method,
         discount_amount: formData.discount_amount,
         notes: formData.notes || undefined,
@@ -242,6 +291,39 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       const createdSale = await onSave(saleData);
 
       if (createdSale) {
+        // Procesar combos usados después de crear la venta
+        if (combosUsed.length > 0) {
+          console.log('🎯 ADMIN: Procesando combos usados:', combosUsed);
+          console.log('🎯 ADMIN: ID de venta creada:', createdSale);
+
+          // Usar combos secuencialmente para mejor debugging
+          for (const comboUsage of combosUsed) {
+            try {
+              console.log(`🔄 ADMIN: Procesando combo ${comboUsage.combo_id} con cantidad ${comboUsage.quantity}`);
+
+              await CombosService.useCombo(
+                comboUsage.combo_id,
+                comboUsage.quantity,
+                createdSale as string,
+                undefined,
+                formData.employee_name || 'Admin'
+              );
+
+              console.log(`✅ ADMIN: Combo ${comboUsage.combo_id} procesado exitosamente`);
+            } catch (error) {
+              console.error(`❌ ADMIN: Error usando combo ${comboUsage.combo_id}:`, error);
+              // Mostrar el error específico
+              alert(`Error procesando combo: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+            }
+          }
+
+          console.log('🔄 ADMIN: Refrescando lista de combos...');
+          await fetchCombos();
+          console.log('✅ ADMIN: Lista de combos refrescada');
+        } else {
+          console.log('ℹ️ ADMIN: No hay combos para procesar');
+        }
+
         // Reset form
         setItems([]);
         setFormData({
@@ -281,22 +363,22 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
   // Filtrar combos que coincidan con la búsqueda
   const availableCombos_filtered = searchTerm ? availableCombos.filter(combo => {
-    // Temporalmente relajar filtros para debug
-    const isAvailable = combo.status === 'active'; // Solo verificar status
-    // const hasStock = combo.effective_stock > 0;  // Comentado temporalmente
+    const isAvailable = combo.status === 'active';
+    const hasStock = combo.effective_stock > 0;
     const matchesSearch = combo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          searchTerm.toLowerCase().includes('combo');
 
-    console.log(`🔍 Filtro combo "${combo.name}":`, {
+    console.log(`🔍 Admin Filtro combo "${combo.name}":`, {
       status: combo.status,
       isAvailable,
-      // hasStock,
+      hasStock,
+      effective_stock: combo.effective_stock,
       matchesSearch,
       searchTerm,
-      willShow: isAvailable && matchesSearch
+      willShow: isAvailable && hasStock && matchesSearch
     });
 
-    return isAvailable && matchesSearch; // Temporalmente sin verificar stock
+    return isAvailable && hasStock && matchesSearch;
   }) : [];
 
 
@@ -334,6 +416,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   };
 
   const subtotal = items.reduce((sum, item) => {
+    // Excluir items individuales de combo del subtotal (solo incluir el display)
+    if (item.is_combo_item) {
+      return sum;
+    }
+
     // Usar precio de promoción si está disponible, sino usar precio normal
     let price;
     if (item.promotion_data && item.promotion_data.has_promotion) {
@@ -347,6 +434,7 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       price,
       quantity: item.quantity,
       subtotalForItem: price * item.quantity,
+      isComboDisplay: item.is_combo_display || false,
       isComboItem: item.is_combo_item || false,
       comboName: item.combo_name || 'N/A',
       unit_price: item.unit_price,
@@ -521,23 +609,69 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       .reduce((total, item) => total + item.quantity, 0);
   };
 
+  // Función para remover combo completo (display + items)
+  const removeCombo = (comboId: string) => {
+    setItems(prev => prev.filter(item => item.combo_id !== comboId));
+  };
+
   // Función para agregar combo al carrito
   const handleAddComboToCart = useCallback((combo: ComboWithDetails) => {
-    console.log('Agregando combo al carrito:', combo.name);
+    console.log('Admin: Agregando combo al carrito:', combo.name);
     console.log('💰 Datos completos del combo:', {
       combo_price: combo.combo_price,
       original_total_price: combo.original_total_price,
       savings_amount: combo.savings_amount,
       savings_percentage: combo.savings_percentage,
-      combo_items: combo.combo_items
+      combo_items: combo.combo_items,
+      effective_stock: combo.effective_stock
     });
 
+    // Verificar si el combo tiene stock disponible
+    if (combo.effective_stock <= 0) {
+      alert(`Este combo no tiene stock disponible.`);
+      return;
+    }
+
     // Verificar si ya se alcanzó el límite máximo de este combo
-    const comboCountInCart = items.filter(item => item.combo_id === combo.id).length / combo.combo_items.length;
+    const comboCountInCart = items.filter(item => item.combo_id === combo.id).length / (combo.combo_items.length + 1); // +1 por el display
     if (comboCountInCart >= combo.max_combo_per_client) {
       alert(`No puedes agregar más de ${combo.max_combo_per_client} de este combo por venta.`);
       return;
     }
+
+    // Verificar stock de productos individuales considerando lo que ya hay en el carrito
+    for (const comboItem of combo.combo_items) {
+      const currentQuantityInCart = getTotalQuantityInCart(comboItem.product_id);
+      const totalNeeded = currentQuantityInCart + comboItem.quantity_per_combo;
+
+      if (totalNeeded > comboItem.available_stock) {
+        alert(`No hay suficiente stock de "${comboItem.product_name}". Disponible: ${comboItem.available_stock}, necesitas: ${totalNeeded}`);
+        return;
+      }
+    }
+
+    const comboDisplayId = `combo-display-${combo.id}-${Date.now()}-${Math.random()}`;
+
+    // Crear el item de visualización del combo (cuadrado morado)
+    const comboDisplayItem: SaleItemForm = {
+      id: comboDisplayId,
+      product_id: 'combo-display',
+      product_name: combo.name,
+      quantity: 1,
+      unit_price: combo.combo_price,
+      available_stock: combo.effective_stock,
+      product_sale_price: combo.original_total_price,
+      promotion_data: null,
+      disable_promotions: true,
+      combo_id: combo.id,
+      combo_name: combo.name,
+      is_combo_display: true,
+      is_combo_item: false,
+      combo_original_price: combo.original_total_price,
+      combo_price: combo.combo_price,
+      combo_savings: combo.original_total_price - combo.combo_price,
+      combo_editable: false
+    };
 
     // Crear los items individuales del combo
     const comboItems: SaleItemForm[] = combo.combo_items.map((comboItem) => {
@@ -601,11 +735,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       items: comboItems.length
     });
 
-    // Agregar todos los items del combo al carrito
-    setItems(prev => [...comboItems, ...prev]);
+    // Agregar el display del combo y todos los items del combo al carrito
+    setItems(prev => [comboDisplayItem, ...comboItems, ...prev]);
     setSearchTerm('');
 
-    console.log(`Combo "${combo.name}" agregado al carrito con ${combo.combo_items.length} productos`);
+    console.log(`Admin: Combo "${combo.name}" agregado al carrito con ${combo.combo_items.length} productos`);
   }, [items]);
 
   // Verificar si hay items sin stock suficiente
@@ -1347,6 +1481,41 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                   </div>
                 ) : (
                   items.map((item) => {
+                    // Renderizado especial para displays de combo
+                    if (item.is_combo_display) {
+                      return (
+                        <div key={item.id} className="flex items-center gap-2 p-3 border-2 border-purple-300 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-purple-800 text-sm">🎁 {item.combo_name}</p>
+                            <div className="text-xs text-purple-600 mt-1">
+                              <div>💰 Precio combo: ${item.combo_price?.toFixed(2)}</div>
+                              <div>🏷️ Precio original: ${item.combo_original_price?.toFixed(2)}</div>
+                              <div className="font-medium text-green-600">
+                                💰 Ahorras: ${item.combo_savings?.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-purple-800 font-semibold">Cantidad: {item.quantity}</span>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => removeCombo(item.combo_id!)}
+                              className="h-6 w-6 p-0 ml-2"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Ocultar items individuales de combo (solo mostrar el display)
+                    if (item.is_combo_item) {
+                      return null;
+                    }
+
+                    // Renderizado normal para productos
                     const totalQuantityInCart = getTotalQuantityInCart(item.product_id);
                     const hasStockIssue = totalQuantityInCart > item.available_stock;
 
@@ -1354,41 +1523,17 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                     <div key={item.id} className={`flex items-center gap-2 p-2 border rounded-md transition-colors ${
                       hasStockIssue
                         ? 'bg-red-50 border-red-200 hover:bg-red-100'
-                        : item.is_combo_item
-                        ? 'bg-green-50 border-green-300 hover:bg-green-100'
                         : 'bg-card hover:bg-accent/50'
                     }`}>
                       {/* Nombre del producto */}
                       <div className="flex-1 min-w-0">
                         <p className={`font-medium text-sm truncate ${hasStockIssue ? 'text-red-700' : ''}`}>
-                          {item.is_combo_item && <span className="text-green-600 mr-1">🎁</span>}
                           {item.product_name}
-                          {item.is_combo_item && (
-                            <span className="ml-2 text-green-600 text-xs">({item.combo_name})</span>
-                          )}
                           {hasStockIssue && <span className="ml-2 text-red-600">⚠️ Sin stock</span>}
                         </p>
                         <div className={`text-xs ${hasStockIssue ? 'text-red-600' : 'text-muted-foreground'}`}>
                           <div>Stock: {item.available_stock} {hasStockIssue && `(Necesitas: ${totalQuantityInCart})`}</div>
 
-                          {/* Información específica de combo */}
-                          {item.is_combo_item && (
-                            <div className="mt-1 text-green-600">
-                              <div>
-                                Precio individual: ${item.combo_original_price?.toFixed(2)}
-                                → Precio combo: ${item.unit_price.toFixed(2)}
-                              </div>
-                              <div>
-                                Ahorro por unidad: ${item.combo_savings?.toFixed(2)}
-                              </div>
-                              <div>
-                                Ahorro total: ${((item.combo_savings || 0) * item.quantity).toFixed(2)}
-                              </div>
-                              <div className="font-medium">
-                                🔒 Cantidad fija del combo (no editable)
-                              </div>
-                            </div>
-                          )}
 
                           {/* Mostrar estado de cantidad mínima de promoción */}
                           {item.promotion_data && item.promotion_data.promotion_id && (() => {

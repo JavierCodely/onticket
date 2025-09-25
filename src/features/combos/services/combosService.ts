@@ -82,13 +82,13 @@ export class CombosService {
         });
       });
 
-      // Temporalmente relajar los filtros para debug
+      // Filtrar solo combos disponibles y con stock
       const { data, error } = await supabase
         .from('combos_with_details')
         .select('*')
         .eq('status', 'active')
-        // .eq('is_available', true)  // Comentado temporalmente
-        // .gt('effective_stock', 0)  // Comentado temporalmente
+        .eq('is_available', true)  // Solo combos disponibles (incluye validación de max_uses)
+        .gt('effective_stock', 0)  // Solo combos con stock
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -163,16 +163,16 @@ export class CombosService {
         throw new Error('El máximo por cliente debe ser mayor o igual al mínimo');
       }
 
-      // Llamar función RPC para crear combo (parámetros en orden correcto)
+      // Llamar función RPC para crear combo (nueva estructura sin stock_quantity)
       const { data, error } = await supabase.rpc('fn_create_combo', {
         p_name: comboData.name.trim(),
         p_combo_price: comboData.combo_price,
         p_combo_items: comboData.combo_items,
         p_description: comboData.description?.trim() || null,
-        p_stock_quantity: comboData.stock_quantity || 0,
         p_min_combo_per_client: comboData.min_combo_per_client,
         p_max_combo_per_client: comboData.max_combo_per_client,
-        p_max_uses: comboData.max_uses || null
+        p_max_quantity_per_sale: comboData.max_quantity_per_sale || 1,
+        p_total_usage_limit: comboData.total_usage_limit || null
       });
 
       if (error) {
@@ -208,6 +208,10 @@ export class CombosService {
         throw new Error('El mínimo por cliente debe ser mayor a 0');
       }
 
+      if (updateData.max_quantity_per_sale !== undefined && updateData.max_quantity_per_sale <= 0) {
+        throw new Error('El máximo por venta debe ser mayor a 0');
+      }
+
       if (
         updateData.max_combo_per_client !== undefined &&
         updateData.min_combo_per_client !== undefined &&
@@ -216,16 +220,16 @@ export class CombosService {
         throw new Error('El máximo por cliente debe ser mayor o igual al mínimo');
       }
 
-      // Llamar función RPC para actualizar combo
+      // Llamar función RPC para actualizar combo (nueva estructura)
       const { error } = await supabase.rpc('fn_update_combo', {
         p_combo_id: comboId,
         p_name: updateData.name?.trim() || null,
         p_description: updateData.description?.trim() || null,
         p_combo_price: updateData.combo_price || null,
-        p_stock_quantity: updateData.stock_quantity || null,
         p_min_combo_per_client: updateData.min_combo_per_client || null,
         p_max_combo_per_client: updateData.max_combo_per_client || null,
-        p_max_uses: updateData.max_uses || null,
+        p_max_quantity_per_sale: updateData.max_quantity_per_sale || null,
+        p_total_usage_limit: updateData.total_usage_limit || null,
         p_status: updateData.status || null
       });
 

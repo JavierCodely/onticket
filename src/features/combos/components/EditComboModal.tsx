@@ -40,10 +40,10 @@ export function EditComboModal({ combo, open, onOpenChange }: EditComboModalProp
     name: combo.name || '',
     description: combo.description || '',
     combo_price: combo.combo_price?.toString() || '',
-    stock_quantity: combo.stock_quantity?.toString() || '0',
     min_combo_per_client: combo.min_combo_per_client?.toString() || '1',
     max_combo_per_client: combo.max_combo_per_client?.toString() || '1',
-    max_uses: combo.max_uses?.toString() || '',
+    max_quantity_per_sale: combo.max_quantity_per_sale?.toString() || '1',
+    total_usage_limit: combo.total_usage_limit?.toString() || '',
     status: combo.status || 'active'
   });
 
@@ -54,10 +54,10 @@ export function EditComboModal({ combo, open, onOpenChange }: EditComboModalProp
         name: combo.name || '',
         description: combo.description || '',
         combo_price: combo.combo_price?.toString() || '',
-        stock_quantity: combo.stock_quantity?.toString() || '0',
         min_combo_per_client: combo.min_combo_per_client?.toString() || '1',
         max_combo_per_client: combo.max_combo_per_client?.toString() || '1',
-        max_uses: combo.max_uses?.toString() || '',
+        max_quantity_per_sale: combo.max_quantity_per_sale?.toString() || '1',
+        total_usage_limit: combo.total_usage_limit?.toString() || '',
         status: combo.status || 'active'
       });
     }
@@ -79,12 +79,12 @@ export function EditComboModal({ combo, open, onOpenChange }: EditComboModalProp
         name: formData.name.trim() !== combo.name ? formData.name.trim() : undefined,
         description: formData.description.trim() !== combo.description ? formData.description.trim() : undefined,
         combo_price: parseFloat(formData.combo_price) !== combo.combo_price ? parseFloat(formData.combo_price) : undefined,
-        stock_quantity: parseInt(formData.stock_quantity) !== combo.stock_quantity ? parseInt(formData.stock_quantity) : undefined,
         min_combo_per_client: parseInt(formData.min_combo_per_client) !== combo.min_combo_per_client ? parseInt(formData.min_combo_per_client) : undefined,
         max_combo_per_client: parseInt(formData.max_combo_per_client) !== combo.max_combo_per_client ? parseInt(formData.max_combo_per_client) : undefined,
-        max_uses: formData.max_uses
-          ? (parseInt(formData.max_uses) !== combo.max_uses ? parseInt(formData.max_uses) : undefined)
-          : (combo.max_uses ? -1 : undefined), // -1 significa sin límite
+        max_quantity_per_sale: parseInt(formData.max_quantity_per_sale) !== combo.max_quantity_per_sale ? parseInt(formData.max_quantity_per_sale) : undefined,
+        total_usage_limit: formData.total_usage_limit
+          ? (parseInt(formData.total_usage_limit) !== combo.total_usage_limit ? parseInt(formData.total_usage_limit) : undefined)
+          : (combo.total_usage_limit ? -1 : undefined), // -1 significa sin límite
         status: formData.status as ComboStatus !== combo.status ? formData.status as ComboStatus : undefined
       };
 
@@ -110,9 +110,9 @@ export function EditComboModal({ combo, open, onOpenChange }: EditComboModalProp
     const hasValidName = formData.name.trim();
     const hasValidPrice = formData.combo_price && parseFloat(formData.combo_price) > 0;
     const hasValidQuantities = parseInt(formData.min_combo_per_client) <= parseInt(formData.max_combo_per_client);
-    const hasValidStock = parseInt(formData.stock_quantity) >= 0;
+    const hasValidMaxPerSale = parseInt(formData.max_quantity_per_sale) > 0;
 
-    return hasValidName && hasValidPrice && hasValidQuantities && hasValidStock;
+    return hasValidName && hasValidPrice && hasValidQuantities && hasValidMaxPerSale;
   };
 
   const formatCurrency = (amount: number) => {
@@ -311,31 +311,32 @@ export function EditComboModal({ combo, open, onOpenChange }: EditComboModalProp
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="stock_quantity">Stock disponible</Label>
+                  <Label htmlFor="max_quantity_per_sale">Máximo por venta *</Label>
                   <Input
-                    id="stock_quantity"
+                    id="max_quantity_per_sale"
                     type="number"
-                    min="0"
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
+                    min="1"
+                    value={formData.max_quantity_per_sale}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_quantity_per_sale: e.target.value }))}
+                    required
                   />
                   <div className="text-xs text-muted-foreground mt-1">
-                    Stock efectivo actual: {combo.effective_stock}
+                    Máximo de combos en una sola venta
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="max_uses">Máximo de usos (opcional)</Label>
+                  <Label htmlFor="total_usage_limit">Límite total de usos</Label>
                   <Input
-                    id="max_uses"
+                    id="total_usage_limit"
                     type="number"
                     min="1"
-                    value={formData.max_uses}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_uses: e.target.value }))}
+                    value={formData.total_usage_limit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, total_usage_limit: e.target.value }))}
                     placeholder="Sin límite"
                   />
                   <div className="text-xs text-muted-foreground mt-1">
-                    Usos actuales: {combo.current_uses}
+                    Usos actuales: {combo.current_uses} | Stock efectivo: {combo.effective_stock}
                   </div>
                 </div>
               </div>

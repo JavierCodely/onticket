@@ -343,12 +343,10 @@ export interface Combo {
   name: string;
   description?: string;
   combo_price: number;
-  stock_quantity: number;
-  min_stock_alert: number;
-  max_uses?: number;
-  current_uses: number;
   min_combo_per_client: number;
   max_combo_per_client: number;
+  max_quantity_per_sale: number;
+  total_usage_limit?: number;
   status: ComboStatus;
   priority: number;
   created_by?: string;
@@ -372,10 +370,10 @@ export interface ComboItemDetail {
 export interface ComboWithDetails extends Combo {
   combo_items: ComboItemDetail[];
   original_total_price: number;
-  final_price: number;
   savings_amount: number;
   savings_percentage: number;
   effective_stock: number;
+  current_uses: number;
   is_available: boolean;
   is_low_stock: boolean;
   items_count: number;
@@ -401,10 +399,10 @@ export interface CreateComboData {
   name: string;
   description?: string;
   combo_price: number;
-  stock_quantity: number;
   min_combo_per_client: number;
   max_combo_per_client: number;
-  max_uses?: number;
+  max_quantity_per_sale?: number;
+  total_usage_limit?: number;
   combo_items: Array<{
     product_id: string;
     quantity_per_combo: number;
@@ -415,10 +413,10 @@ export interface UpdateComboData {
   name?: string;
   description?: string;
   combo_price?: number;
-  stock_quantity?: number;
   min_combo_per_client?: number;
   max_combo_per_client?: number;
-  max_uses?: number; // -1 para sin límite
+  max_quantity_per_sale?: number;
+  total_usage_limit?: number; // -1 para sin límite
   status?: ComboStatus;
 }
 

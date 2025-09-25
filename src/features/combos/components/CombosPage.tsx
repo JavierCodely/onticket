@@ -332,8 +332,8 @@ export function CombosPage() {
                   <TableHead>Productos</TableHead>
                   <TableHead>Precio</TableHead>
                   <TableHead>Stock</TableHead>
-                  <TableHead>Límites por Cliente</TableHead>
-                  <TableHead>Usos</TableHead>
+                  <TableHead>Límites</TableHead>
+                  <TableHead>Usos Totales</TableHead>
                   <TableHead>Fecha Creación</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="w-[70px]">Acciones</TableHead>
@@ -401,8 +401,28 @@ export function CombosPage() {
                             </Badge>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Alerta: {combo.min_stock_alert}
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          {combo.combo_items.map((item) => {
+                            const maxCombosFromThisProduct = Math.floor(item.available_stock / item.quantity_per_combo);
+                            const isLimitingFactor = maxCombosFromThisProduct === combo.effective_stock;
+                            const isLowStock = item.available_stock < item.quantity_per_combo * 10; // Considera bajo si no puede hacer 10 combos
+
+                            return (
+                              <div
+                                key={item.product_id}
+                                className={`flex justify-between ${isLimitingFactor ? 'font-medium text-red-600' : ''}`}
+                              >
+                                <span className="truncate">
+                                  {item.product_name}:
+                                </span>
+                                <span>
+                                  {item.available_stock}/{item.quantity_per_combo}
+                                  {isLimitingFactor && ' ⚠️'}
+                                  {isLowStock && !isLimitingFactor && ' ⚠️'}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </TableCell>
 
@@ -413,13 +433,21 @@ export function CombosPage() {
                         <div className="text-sm">
                           Max: {combo.max_combo_per_client}
                         </div>
+                        <div className="text-xs text-muted-foreground">
+                          Por venta: {combo.max_quantity_per_sale}
+                        </div>
                       </TableCell>
 
                       <TableCell>
                         <div>
                           {combo.current_uses}
-                          {combo.max_uses && ` / ${combo.max_uses}`}
+                          {combo.total_usage_limit && ` / ${combo.total_usage_limit}`}
                         </div>
+                        {!combo.total_usage_limit && (
+                          <div className="text-xs text-muted-foreground">
+                            Sin límite
+                          </div>
+                        )}
                       </TableCell>
 
                       <TableCell>
