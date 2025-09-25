@@ -506,26 +506,46 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   };
 
   const addProduct = (productId: string, forceNormalPrice: boolean = false) => {
+    console.log('🔍 addProduct called:', { productId, hasValidEmployee });
+
     // Validar que hay empleado seleccionado
     if (!hasValidEmployee) {
+      console.log('❌ No valid employee, showing alert');
       alert('⚠️ Primero debes seleccionar un empleado antes de agregar productos.');
       return;
     }
 
     const product = products.find(p => p.id === productId);
-    if (!product) return;
+    if (!product) {
+      console.log('❌ Product not found:', productId);
+      return;
+    }
+
+    console.log('✅ Valid employee and product found, proceeding...');
 
     // Si se fuerza precio normal, buscar solo items sin promoción
-    // Si no se fuerza, buscar cualquier item del producto
+    // Si no se fuerza, buscar cualquier item del producto (EXCLUYENDO items de combo)
     const existingItem = items.find(item => {
+      // Nunca intentar incrementar items de combo, siempre crear uno nuevo
+      if (item.is_combo_item || item.is_combo_display) {
+        console.log('🚫 Skipping combo item:', item.product_name, item.is_combo_item, item.is_combo_display);
+        return false;
+      }
+
       if (forceNormalPrice) {
         // Solo buscar items sin promoción activa
-        return item.product_id === productId && (!item.promotion_data || !item.promotion_data.has_promotion);
+        const found = item.product_id === productId && (!item.promotion_data || !item.promotion_data.has_promotion);
+        console.log('🔍 Looking for force normal price item:', item.product_name, found);
+        return found;
       } else {
-        // Buscar cualquier item del producto
-        return item.product_id === productId;
+        // Buscar cualquier item del producto (no combo)
+        const found = item.product_id === productId;
+        console.log('🔍 Looking for any item:', item.product_name, found);
+        return found;
       }
     });
+
+    console.log('🔍 Existing item found:', existingItem ? existingItem.product_name : 'none');
 
     if (existingItem && !forceNormalPrice) {
       // Intentar incrementar cantidad del item existente
@@ -579,9 +599,11 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         return;
       }
 
+      console.log('✅ Adding new item to cart:', newItem.product_name);
       setItems(prev => [newItem, ...prev]);
     }
     setSearchTerm('');
+    console.log('✅ Product added successfully!');
   };
 
   // Función auxiliar para calcular cantidad total de un producto en el carrito
@@ -603,10 +625,39 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     const isActive = product.status === 'active';
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Calcular cuánto stock está siendo usado en el carrito
-    const quantityInCart = getTotalQuantityInCart(product.id);
-    const availableToAdd = product.available_stock - quantityInCart;
+    // Calcular correctamente: stock total - (combos + individuales)
+    const comboQuantityInCart = items
+      .filter(item =>
+        item.product_id === product.id &&
+        item.is_combo_item // Solo items de combo
+      )
+      .reduce((total, item) => total + item.quantity, 0);
+
+    const individualQuantityInCart = items
+      .filter(item =>
+        item.product_id === product.id &&
+        !item.is_combo_display &&
+        !item.is_combo_item // Solo productos individuales
+      )
+      .reduce((total, item) => total + item.quantity, 0);
+
+    const totalUsedStock = comboQuantityInCart + individualQuantityInCart;
+    const availableToAdd = product.available_stock - totalUsedStock;
     const hasStock = availableToAdd > 0;
+
+    // Debug log para entender qué pasa
+    if (matchesSearch) {
+      console.log(`🔍 Product "${product.name}":`, {
+        isActive,
+        available_stock: product.available_stock,
+        comboQuantityInCart,
+        individualQuantityInCart,
+        totalUsedStock,
+        availableToAdd,
+        hasStock,
+        willShow: isActive && hasStock && matchesSearch
+      });
+    }
 
     return isActive && hasStock && matchesSearch;
   });
@@ -878,11 +929,20 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
   };
 
   const addPromotion = (promotion: PromotionWithDetails) => {
+    console.log('🔍 addPromotion called:', {
+      name: promotion.name,
+      type: promotion.promotion_type,
+      hasValidEmployee
+    });
+
     // Validar que hay empleado seleccionado
     if (!hasValidEmployee) {
+      console.log('❌ No valid employee, showing alert');
       alert('⚠️ Primero debes seleccionar un empleado antes de agregar promociones.');
       return;
     }
+
+    console.log('✅ Valid employee, proceeding with promotion...');
     if (promotion.promotion_type === 'combo') {
       // Para combos, agregar todos los productos del combo
       if (promotion.combo_items) {
@@ -923,12 +983,22 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
       }
     } else {
       // Para promociones individuales
+      console.log('🎯 Processing individual promotion for product:', promotion.product_id);
       const product = products.find(p => p.id === promotion.product_id);
       if (product) {
-        const existingItem = items.find(item => item.product_id === promotion.product_id);
+        // Buscar item existente EXCLUYENDO items de combo
+        const existingItem = items.find(item =>
+          item.product_id === promotion.product_id &&
+          !item.is_combo_item &&
+          !item.is_combo_display
+        );
+        console.log('🔍 Existing item found for promotion:', existingItem ? existingItem.product_name : 'none');
+
         if (existingItem) {
+          console.log('✅ Incrementing existing item for promotion');
           updateItemQuantity(existingItem.id, existingItem.quantity + 1);
         } else {
+          console.log('✅ Creating new item for promotion');
           // Para admin: usar precio de compra, para otros: verificar cantidad mínima
           const basePrice = isAdminSale ? product.cost_price : product.sale_price;
 
@@ -1459,7 +1529,14 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                   <div
                     key={`promo-${promotion.id}`}
                     className="p-2 hover:bg-green-50 cursor-pointer border-b last:border-b-0 bg-green-25"
-                    onClick={() => addPromotion(promotion)}
+                    onClick={() => {
+                      console.log('🖱️ Promotion clicked:', promotion.name, promotion.id);
+                      try {
+                        addPromotion(promotion);
+                      } catch (error) {
+                        console.error('❌ Error in addPromotion:', error);
+                      }
+                    }}
                   >
                     <div className="flex justify-between items-center">
                       <div className="flex-1">
@@ -1565,13 +1642,49 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                       className="p-2 hover:bg-gray-50 border-b last:border-b-0"
                     >
                       <div className="flex justify-between items-center">
-                        <div className="flex-1 cursor-pointer" onClick={() => addProduct(product.id)}>
+                        <div className="flex-1 cursor-pointer" onClick={() => {
+                          console.log('🖱️ Product clicked:', product.name, product.id);
+                          try {
+                            addProduct(product.id);
+                          } catch (error) {
+                            console.error('❌ Error in addProduct:', error);
+                          }
+                        }}>
                           <p className="font-medium text-sm">{product.name}</p>
                           <p className="text-xs text-gray-500">
                             {(() => {
-                              const quantityInCart = getTotalQuantityInCart(product.id);
-                              const availableToAdd = product.available_stock - quantityInCart;
-                              return `Stock: ${product.available_stock}${quantityInCart > 0 ? ` (${availableToAdd} disponible)` : ''} | $${getPriceForProduct(product)}`;
+                              // Calcular stock total usado (combos + individuales)
+                              const comboQuantityInCart = items
+                                .filter(item =>
+                                  item.product_id === product.id &&
+                                  item.is_combo_item
+                                )
+                                .reduce((total, item) => total + item.quantity, 0);
+
+                              const individualQuantityInCart = items
+                                .filter(item =>
+                                  item.product_id === product.id &&
+                                  !item.is_combo_display &&
+                                  !item.is_combo_item
+                                )
+                                .reduce((total, item) => total + item.quantity, 0);
+
+                              const totalUsedStock = comboQuantityInCart + individualQuantityInCart;
+                              const availableToAdd = product.available_stock - totalUsedStock;
+
+                              let stockDisplay = `Stock: ${product.available_stock}`;
+                              if (totalUsedStock > 0) {
+                                stockDisplay += ` (${availableToAdd} disponible`;
+                                if (comboQuantityInCart > 0 && individualQuantityInCart > 0) {
+                                  stockDisplay += `, ${comboQuantityInCart} en combos, ${individualQuantityInCart} individual`;
+                                } else if (comboQuantityInCart > 0) {
+                                  stockDisplay += `, ${comboQuantityInCart} en combos`;
+                                } else {
+                                  stockDisplay += `, ${individualQuantityInCart} individual`;
+                                }
+                                stockDisplay += ')';
+                              }
+                              return `${stockDisplay} | $${getPriceForProduct(product)}`;
                             })()}
                             {isAdminSale && (
                               <span className="text-blue-600 font-medium"> (Precio Admin)</span>
