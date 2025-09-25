@@ -522,9 +522,24 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     const isActive = product.status === 'active';
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Calcular cuánto stock está siendo usado en el carrito
-    const quantityInCart = getTotalQuantityInCart(product.id);
-    const availableToAdd = product.available_stock - quantityInCart;
+    // Calcular correctamente: stock total - (combos + individuales)
+    const comboQuantityInCart = items
+      .filter(item =>
+        item.product_id === product.id &&
+        item.is_combo_item // Solo items de combo
+      )
+      .reduce((total, item) => total + item.quantity, 0);
+
+    const individualQuantityInCart = items
+      .filter(item =>
+        item.product_id === product.id &&
+        !item.is_combo_display &&
+        !item.is_combo_item // Solo productos individuales
+      )
+      .reduce((total, item) => total + item.quantity, 0);
+
+    const totalUsedStock = comboQuantityInCart + individualQuantityInCart;
+    const availableToAdd = product.available_stock - totalUsedStock;
     const hasStock = availableToAdd > 0;
 
     return isActive && hasStock && matchesSearch;
@@ -805,13 +820,24 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       // Para promociones individuales
       const product = products.find(p => p.id === promotion.product_id);
       if (product) {
-        const existingItem = items.find(item => item.product_id === promotion.product_id);
+        // Buscar item existente EXCLUYENDO items de combo
+        const existingItem = items.find(item =>
+          item.product_id === promotion.product_id &&
+          !item.is_combo_item &&
+          !item.is_combo_display
+        );
+
         if (existingItem) {
-          updateItemQuantity(existingItem.id, existingItem.quantity + 1);
+          // Si es una promoción con cantidad mínima, incrementar hasta alcanzar ese mínimo
+          const minQuantityRequired = promotion.min_quantity || 1;
+          const quantityToAdd = Math.max(1, minQuantityRequired - existingItem.quantity);
+          updateItemQuantity(existingItem.id, existingItem.quantity + quantityToAdd);
         } else {
           // Verificar si se cumple la cantidad mínima para aplicar la promoción
           const minQuantityRequired = promotion.min_quantity || 1;
-          const shouldApplyPromotion = (1 >= minQuantityRequired);
+          // Cargar automáticamente la cantidad mínima requerida
+          const quantityToAdd = Math.max(1, minQuantityRequired);
+          const shouldApplyPromotion = (quantityToAdd >= minQuantityRequired);
 
           const finalPrice = shouldApplyPromotion ? (promotion.final_price || product.sale_price) : product.sale_price;
 
@@ -821,7 +847,7 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
             product_name: shouldApplyPromotion ?
               `${product.name} (${promotion.name})` :
               `${product.name} (${promotion.name} - Requiere ${minQuantityRequired} unid.)`,
-            quantity: 1,
+            quantity: quantityToAdd,
             unit_price: finalPrice,
             product_sale_price: product.sale_price,
             available_stock: product.available_stock,
@@ -832,11 +858,13 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
               promotion_description: promotion.description,
               original_price: product.sale_price,
               final_price: finalPrice,
-              total_original: product.sale_price,
-              total_final: finalPrice,
-              total_savings: shouldApplyPromotion ? (product.sale_price - finalPrice) : 0,
+              total_original: product.sale_price * quantityToAdd,
+              total_final: finalPrice * quantityToAdd,
+              total_savings: shouldApplyPromotion ? ((product.sale_price - finalPrice) * quantityToAdd) : 0,
               discount_amount: shouldApplyPromotion ? (product.sale_price - finalPrice) : 0,
-              discount_percentage: shouldApplyPromotion ? (promotion.discount_percentage || 0) : 0
+              discount_percentage: shouldApplyPromotion ? (promotion.discount_percentage || 0) : 0,
+              min_quantity_required: minQuantityRequired,
+              quantity_meets_minimum: shouldApplyPromotion
             }
           };
           setItems(prev => [newItem, ...prev]);
@@ -1528,9 +1556,38 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                             <p className="font-medium text-sm">{product.name}</p>
                             <p className="text-xs text-gray-500">
                               {(() => {
-                                const quantityInCart = getTotalQuantityInCart(product.id);
-                                const availableToAdd = product.available_stock - quantityInCart;
-                                return `Stock: ${product.available_stock}${quantityInCart > 0 ? ` (${availableToAdd} disponible)` : ''} | $${product.sale_price}`;
+                                // Calcular stock total usado (combos + individuales)
+                                const comboQuantityInCart = items
+                                  .filter(item =>
+                                    item.product_id === product.id &&
+                                    item.is_combo_item
+                                  )
+                                  .reduce((total, item) => total + item.quantity, 0);
+
+                                const individualQuantityInCart = items
+                                  .filter(item =>
+                                    item.product_id === product.id &&
+                                    !item.is_combo_display &&
+                                    !item.is_combo_item
+                                  )
+                                  .reduce((total, item) => total + item.quantity, 0);
+
+                                const totalUsedStock = comboQuantityInCart + individualQuantityInCart;
+                                const availableToAdd = product.available_stock - totalUsedStock;
+
+                                let stockDisplay = `Stock: ${product.available_stock}`;
+                                if (totalUsedStock > 0) {
+                                  stockDisplay += ` (${availableToAdd} disponible`;
+                                  if (comboQuantityInCart > 0 && individualQuantityInCart > 0) {
+                                    stockDisplay += `, ${comboQuantityInCart} en combos, ${individualQuantityInCart} individual`;
+                                  } else if (comboQuantityInCart > 0) {
+                                    stockDisplay += `, ${comboQuantityInCart} en combos`;
+                                  } else {
+                                    stockDisplay += `, ${individualQuantityInCart} individual`;
+                                  }
+                                  stockDisplay += ')';
+                                }
+                                return `${stockDisplay} | $${product.sale_price}`;
                               })()}
                             </p>
                           </div>

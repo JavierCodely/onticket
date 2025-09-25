@@ -148,13 +148,32 @@ export function PromotionPriceSimple({
 }: PromotionPriceDisplayProps) {
   const { calculateBestPrice, loading } = usePromotionPricing();
   const [priceData, setPriceData] = useState<PromotionPriceResult | null>(null);
+  const [hasCheckedPromotion, setHasCheckedPromotion] = useState(false);
+  const prevQuantityRef = useRef<number>(quantity);
   const onPriceChangeRef = useRef(onPriceChange);
 
   // Actualizar la ref en cada render
   onPriceChangeRef.current = onPriceChange;
 
-  // Si las promociones están deshabilitadas, mostrar solo el precio original SIN ESTADO
+  // Si las promociones están deshabilitadas, mostrar solo el precio original SIN VERIFICAR PROMOCIONES
   if (disablePromotions) {
+    // Notificar al padre que no hay promoción (una sola vez)
+    React.useEffect(() => {
+      if (onPriceChangeRef.current) {
+        const fallbackResult: PromotionPriceResult = {
+          has_promotion: false,
+          original_price: originalPrice,
+          final_price: originalPrice,
+          total_original: originalPrice * quantity,
+          total_final: originalPrice * quantity,
+          total_savings: 0,
+          discount_amount: 0,
+          discount_percentage: 0
+        };
+        onPriceChangeRef.current(fallbackResult);
+      }
+    }, [originalPrice, quantity]);
+
     return (
       <div className="text-sm">
         ${(originalPrice * quantity).toFixed(2)}
@@ -163,30 +182,68 @@ export function PromotionPriceSimple({
     );
   }
 
+  // Solo verificar promociones cuando cambia la cantidad
   useEffect(() => {
-    if (productId && quantity > 0) {
+    const quantityChanged = prevQuantityRef.current !== quantity;
+    prevQuantityRef.current = quantity;
+
+    if (productId && quantity > 0 && (!hasCheckedPromotion || quantityChanged)) {
+      setHasCheckedPromotion(true);
+
       calculateBestPrice(productId, quantity).then((result) => {
         if (result) {
           setPriceData(result);
           if (onPriceChangeRef.current) {
             onPriceChangeRef.current(result);
           }
+        } else {
+          // Si no hay resultado, establecer precio de venta normal
+          const fallbackResult: PromotionPriceResult = {
+            has_promotion: false,
+            original_price: originalPrice,
+            final_price: originalPrice,
+            total_original: originalPrice * quantity,
+            total_final: originalPrice * quantity,
+            total_savings: 0,
+            discount_amount: 0,
+            discount_percentage: 0
+          };
+          setPriceData(fallbackResult);
+          if (onPriceChangeRef.current) {
+            onPriceChangeRef.current(fallbackResult);
+          }
+        }
+      }).catch(() => {
+        // En caso de error, usar precio de venta normal
+        const fallbackResult: PromotionPriceResult = {
+          has_promotion: false,
+          original_price: originalPrice,
+          final_price: originalPrice,
+          total_original: originalPrice * quantity,
+          total_final: originalPrice * quantity,
+          total_savings: 0,
+          discount_amount: 0,
+          discount_percentage: 0
+        };
+        setPriceData(fallbackResult);
+        if (onPriceChangeRef.current) {
+          onPriceChangeRef.current(fallbackResult);
         }
       });
     }
-  }, [productId, quantity, calculateBestPrice]);
+  }, [productId, quantity, calculateBestPrice, originalPrice, hasCheckedPromotion]);
 
-  // Eliminar el efecto separado que causa bucles infinitos
-
-  if (loading) {
+  // Mientras está verificando por primera vez, mostrar precio de venta
+  if (loading && !hasCheckedPromotion) {
     return (
-      <div className="flex items-center gap-1">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        <span className="text-xs">Verificando...</span>
+      <div className="text-sm">
+        ${(originalPrice * quantity).toFixed(2)}
+        <div className="text-xs text-gray-500">Verificando...</div>
       </div>
     );
   }
 
+  // Si no hay promoción o no hay datos, usar precio de venta
   if (!priceData || !priceData.has_promotion) {
     return (
       <div className="text-sm">
@@ -195,6 +252,7 @@ export function PromotionPriceSimple({
     );
   }
 
+  // Si hay promoción activa, mostrarla
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">
