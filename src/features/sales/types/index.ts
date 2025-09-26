@@ -116,6 +116,7 @@ export interface CreateSaleData {
   notes?: string;
   details?: SaleDetails;
   promotions_used?: Array<{promotion_id: string, quantity: number}>;
+  combos_used?: Array<{combo_id: string, quantity: number}>;
 }
 
 export interface UpdateSaleData {

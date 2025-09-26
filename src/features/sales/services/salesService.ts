@@ -94,33 +94,108 @@ export class SalesService {
         p_payment_details: saleData.payment_details || null,
         p_discount_amount: saleData.discount_amount || 0,
         p_notes: saleData.notes || null,
-        p_details: saleData.details || null
+        p_details: saleData.details || null,
+        combos_used: saleData.combos_used
       });
 
-      const { data, error } = await supabase
-        .rpc('fn_create_sale', {
-          p_employee_user_id: saleData.employee_user_id || null,
-          p_employee_name: saleData.employee_name,
-          p_items: saleData.items,
-          p_payment_method: saleData.payment_method,
-          p_payment_details: saleData.payment_details || null,
-          p_discount_amount: saleData.discount_amount || 0,
-          p_notes: saleData.notes || null,
-          p_details: saleData.details || null
-        });
+      // Verificar si hay combos y si el empleado es bartender
+      const hasCombos = saleData.combos_used && saleData.combos_used.length > 0;
+      let isBartender = false;
+
+      if (hasCombos && saleData.employee_user_id) {
+        // Consultar el rol del empleado
+        const { data: employeeData, error: employeeError } = await supabase
+          .from('employees')
+          .select('category')
+          .eq('user_id', saleData.employee_user_id)
+          .eq('status', 'active')
+          .single();
+
+        if (employeeError) {
+          console.error('Error consultando empleado:', employeeError);
+        } else {
+          isBartender = employeeData?.category === 'bartender';
+          console.log(`🔍 ADMIN SERVICE: Empleado ${saleData.employee_name} es bartender: ${isBartender}`);
+        }
+      }
+
+      // Decidir si procesar combos después
+      const useComboFunction = hasCombos && isBartender;
+
+      console.log('🚀 ADMIN SERVICE: Ejecutando RPC fn_create_sale...');
+      if (useComboFunction) {
+        console.log('🎯 ADMIN SERVICE: Combos detectados para bartender (se procesarán después):', saleData.combos_used);
+      }
+      const startTime = Date.now();
+
+      let rpcParams: any;
+      let data: any;
+      let error: any;
+
+      // Siempre usar fn_create_sale (la función del admin)
+      rpcParams = {
+        p_employee_user_id: saleData.employee_user_id || null,
+        p_employee_name: saleData.employee_name,
+        p_items: saleData.items,
+        p_payment_method: saleData.payment_method,
+        p_payment_details: saleData.payment_details || null,
+        p_discount_amount: saleData.discount_amount || 0,
+        p_notes: saleData.notes || null,
+        p_details: saleData.details || null
+      };
+
+      const result = await supabase.rpc('fn_create_sale', rpcParams);
+      data = result.data;
+      error = result.error;
+
+      const endTime = Date.now();
+      console.log(`⏱️ ADMIN SERVICE: RPC completada en ${endTime - startTime}ms`);
+      console.log('📊 ADMIN SERVICE: Resultado RPC:', { data, error });
 
       if (error) {
-        console.error('Error creating sale:', error);
+        console.error('❌ ADMIN SERVICE: Error creating sale:', error);
         throw new Error(`Error al crear venta: ${error.message}`);
       }
 
       if (!data) {
+        console.error('❌ ADMIN SERVICE: No data received from RPC');
         throw new Error('No se recibió ID de la venta creada');
       }
+
+      console.log('✅ ADMIN SERVICE: Venta creada exitosamente, ID:', data);
 
       // Actualizar contadores de promociones si se usaron
       if (saleData.promotions_used && saleData.promotions_used.length > 0) {
         await this.updatePromotionUsage(saleData.promotions_used);
+      }
+
+      // Procesar combos si el empleado es bartender
+      if (useComboFunction && saleData.combos_used) {
+        console.log('🎯 ADMIN SERVICE: Procesando combos para bartender:', saleData.combos_used);
+
+        for (const comboUsage of saleData.combos_used) {
+          try {
+            console.log(`🔄 ADMIN SERVICE: Procesando combo ${comboUsage.combo_id} con cantidad ${comboUsage.quantity}`);
+
+            const { error: comboError } = await supabase.rpc('fn_use_combo', {
+              p_combo_id: comboUsage.combo_id,
+              p_combo_quantity: comboUsage.quantity,
+              p_sale_id: data,
+              p_customer_identifier: null,
+              p_employee_name: saleData.employee_name
+            });
+
+            if (comboError) {
+              console.error(`❌ ADMIN SERVICE: Error procesando combo ${comboUsage.combo_id}:`, comboError);
+              // No fallar la venta por error de combo, pero logear
+              console.warn('⚠️ ADMIN SERVICE: Venta creada pero combo no procesado');
+            } else {
+              console.log(`✅ ADMIN SERVICE: Combo ${comboUsage.combo_id} procesado exitosamente`);
+            }
+          } catch (comboError) {
+            console.error(`❌ ADMIN SERVICE: Excepción procesando combo ${comboUsage.combo_id}:`, comboError);
+          }
+        }
       }
 
       return data;

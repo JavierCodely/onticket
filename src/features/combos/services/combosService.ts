@@ -313,12 +313,20 @@ export class CombosService {
     employeeName: string = 'Sistema'
   ): Promise<void> {
     try {
-      console.log(`🔄 CombosService.useCombo iniciado para ID: ${comboId}`, {
+      console.log(`🔄 CombosService.useCombo INICIADO para combo: ${comboId}`, {
         quantity,
         saleId,
         customerIdentifier,
-        employeeName
+        employeeName,
+        timestamp: new Date().toISOString()
       });
+
+      // Debug: Verificar estado antes del uso
+      const stateBefore = await this.debugCombo(comboId);
+      console.log('📊 ESTADO ANTES del uso:', stateBefore);
+
+      console.log('🚀 Ejecutando función RPC fn_use_combo...');
+      const startTime = Date.now();
 
       const { data, error } = await supabase.rpc('fn_use_combo', {
         p_combo_id: comboId,
@@ -328,18 +336,51 @@ export class CombosService {
         p_employee_name: employeeName
       });
 
+      const endTime = Date.now();
+      console.log(`⏱️ RPC completada en ${endTime - startTime}ms`);
+
       if (error) {
-        console.error('❌ Error en useCombo RPC:', error);
-        throw new Error(error.message || 'Error al usar combo');
+        console.error('❌ ERROR EN RPC fn_use_combo:', {
+          error: error,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw new Error(`RPC Error: ${error.message || 'Error al usar combo'}`);
       }
 
-      if (!data) {
-        throw new Error('No se pudo procesar el uso del combo');
+      console.log('📊 RESULTADO RPC:', { data, type: typeof data });
+
+      if (data === null || data === undefined) {
+        console.error('❌ RPC devolvió null/undefined');
+        throw new Error('No se pudo procesar el uso del combo - RPC devolvió null');
       }
 
-      console.log(`✅ CombosService.useCombo exitoso`);
+      if (data === false) {
+        console.error('❌ RPC devolvió false');
+        throw new Error('No se pudo procesar el uso del combo - RPC devolvió false');
+      }
+
+      // Debug: Verificar estado después del uso
+      const stateAfter = await this.debugCombo(comboId);
+      console.log('📊 ESTADO DESPUÉS del uso:', stateAfter);
+
+      // Verificar si realmente se actualizó
+      const usesChanged = stateAfter.current_uses_calculated > stateBefore.current_uses_calculated;
+      console.log(`📈 USOS CAMBIARON: ${usesChanged ? '✅ SÍ' : '❌ NO'}`, {
+        antes: stateBefore.current_uses_calculated,
+        después: stateAfter.current_uses_calculated,
+        incremento: stateAfter.current_uses_calculated - stateBefore.current_uses_calculated
+      });
+
+      console.log(`✅ CombosService.useCombo COMPLETADO EXITOSAMENTE`);
     } catch (error) {
-      console.error('❌ Error en CombosService.useCombo:', error);
+      console.error('❌ ERROR EN CombosService.useCombo:', {
+        error,
+        message: error instanceof Error ? error.message : 'Error desconocido',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       throw error;
     }
   }
@@ -438,6 +479,208 @@ export class CombosService {
     } catch (error) {
       console.error('❌ Error en CombosService.searchProductsForCombo:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Verificar y corregir combos sin límite de uso configurado
+   */
+  static async fixCombosWithoutUsageLimit(): Promise<{ fixed: number; errors: string[] }> {
+    try {
+      console.log('🔄 CombosService.fixCombosWithoutUsageLimit iniciado...');
+
+      // Obtener combos activos sin límite configurado
+      const { data: combosWithoutLimit, error: fetchError } = await supabase
+        .from('combos')
+        .select('id, name, total_usage_limit')
+        .eq('status', 'active')
+        .is('total_usage_limit', null);
+
+      if (fetchError) {
+        throw new Error(`Error al obtener combos: ${fetchError.message}`);
+      }
+
+      if (!combosWithoutLimit || combosWithoutLimit.length === 0) {
+        return { fixed: 0, errors: [] };
+      }
+
+      console.log(`🔍 Encontrados ${combosWithoutLimit.length} combos sin límite de uso`);
+
+      let fixedCount = 0;
+      const errors: string[] = [];
+
+      // Asignar límite de 100 usos por defecto a cada combo
+      for (const combo of combosWithoutLimit) {
+        try {
+          await this.updateCombo(combo.id, { total_usage_limit: 100 });
+          console.log(`✅ Combo "${combo.name}" actualizado con límite de 100 usos`);
+          fixedCount++;
+        } catch (error) {
+          const errorMsg = `Error actualizando combo "${combo.name}": ${error}`;
+          console.error(`❌ ${errorMsg}`);
+          errors.push(errorMsg);
+        }
+      }
+
+      console.log(`✅ CombosService.fixCombosWithoutUsageLimit completado: ${fixedCount} fijos`);
+      return { fixed: fixedCount, errors };
+    } catch (error) {
+      console.error('❌ Error en CombosService.fixCombosWithoutUsageLimit:', error);
+      return { fixed: 0, errors: [error instanceof Error ? error.message : String(error)] };
+    }
+  }
+
+  /**
+   * Obtener información detallada de uso de combos
+   */
+  static async getComboUsageInfo(): Promise<any[]> {
+    try {
+      console.log('🔄 CombosService.getComboUsageInfo iniciado...');
+
+      const { data, error } = await supabase
+        .from('combos_with_details')
+        .select('id, name, total_usage_limit, current_uses, is_available, status')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Error al obtener información de uso: ${error.message}`);
+      }
+
+      console.log(`✅ CombosService.getComboUsageInfo exitoso: ${data?.length || 0} combos`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error en CombosService.getComboUsageInfo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Debug específico para un combo
+   */
+  static async debugCombo(comboId: string): Promise<any> {
+    try {
+      console.log(`🔄 CombosService.debugCombo iniciado para ID: ${comboId}`);
+
+      const { data, error } = await supabase.rpc('fn_debug_combo_state', {
+        p_combo_id: comboId
+      });
+
+      if (error) {
+        console.error('❌ Error en debugCombo RPC:', error);
+        throw new Error(error.message || 'Error al hacer debug del combo');
+      }
+
+      console.log(`✅ CombosService.debugCombo exitoso:`, data);
+      return data;
+    } catch (error) {
+      console.error('❌ Error en CombosService.debugCombo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test directo de la función fn_use_combo
+   */
+  static async testUseCombo(comboId: string, quantity: number = 1): Promise<boolean> {
+    try {
+      console.log(`🔄 CombosService.testUseCombo iniciado para ID: ${comboId}, cantidad: ${quantity}`);
+
+      // Primero obtener estado antes
+      const stateBefore = await this.debugCombo(comboId);
+      console.log('📊 Estado ANTES del test:', stateBefore);
+
+      // Llamar fn_use_combo directamente
+      const { data, error } = await supabase.rpc('fn_use_combo', {
+        p_combo_id: comboId,
+        p_combo_quantity: quantity,
+        p_sale_id: null, // Test sin venta
+        p_customer_identifier: 'TEST_CUSTOMER',
+        p_employee_name: 'Test Employee'
+      });
+
+      if (error) {
+        console.error('❌ Error en testUseCombo RPC:', error);
+        throw new Error(error.message || 'Error en test de uso de combo');
+      }
+
+      // Obtener estado después
+      const stateAfter = await this.debugCombo(comboId);
+      console.log('📊 Estado DESPUÉS del test:', stateAfter);
+
+      console.log(`✅ CombosService.testUseCombo exitoso. Resultado:`, data);
+      return data || false;
+    } catch (error) {
+      console.error('❌ Error en CombosService.testUseCombo:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test completo del flujo de combos (para consola del navegador)
+   */
+  static async testComboFlow(): Promise<void> {
+    try {
+      console.log('🧪 ='.repeat(50));
+      console.log('🧪 INICIANDO TEST COMPLETO DE FLUJO DE COMBOS');
+      console.log('🧪 ='.repeat(50));
+
+      // 1. Obtener combos activos
+      console.log('1️⃣ Obteniendo combos activos...');
+      const combos = await this.getActiveCombos();
+      console.log(`✅ Encontrados ${combos.length} combos activos`);
+
+      if (combos.length === 0) {
+        console.log('❌ No hay combos activos para probar');
+        return;
+      }
+
+      const combo = combos[0];
+      console.log('🎯 Combo seleccionado para test:', {
+        id: combo.id,
+        name: combo.name,
+        total_usage_limit: combo.total_usage_limit,
+        current_uses: combo.current_uses,
+        is_available: combo.is_available
+      });
+
+      // 2. Verificar que tenga límite configurado
+      console.log('2️⃣ Verificando configuración de límite...');
+      if (!combo.total_usage_limit) {
+        console.log('⚠️ Combo sin límite, configurando límite de 5 para testing...');
+        await this.updateCombo(combo.id, { total_usage_limit: 5 });
+        console.log('✅ Límite configurado');
+      }
+
+      // 3. Debug estado inicial
+      console.log('3️⃣ Estado inicial del combo...');
+      const initialState = await this.debugCombo(combo.id);
+      console.log('📊 Estado inicial:', initialState);
+
+      // 4. Probar uso directo
+      console.log('4️⃣ Probando uso directo...');
+      const useResult = await this.testUseCombo(combo.id, 1);
+      console.log('✅ Resultado del uso:', useResult);
+
+      // 5. Verificar cambios
+      console.log('5️⃣ Verificando cambios...');
+      const finalState = await this.debugCombo(combo.id);
+      console.log('📊 Estado final:', finalState);
+
+      // 6. Resumen
+      console.log('6️⃣ RESUMEN DEL TEST:');
+      const usesIncremented = finalState.current_uses_calculated > initialState.current_uses_calculated;
+      console.log(`📈 Contador funcionó: ${usesIncremented ? '✅ SÍ' : '❌ NO'}`);
+      console.log(`📊 Usos: ${initialState.current_uses_calculated} → ${finalState.current_uses_calculated}`);
+      console.log(`🎯 Límite: ${finalState.total_usage_limit}`);
+      console.log(`🔒 Disponible: ${finalState.is_available_from_view ? '✅' : '❌'}`);
+
+      console.log('🧪 ='.repeat(50));
+      console.log('🧪 TEST COMPLETO FINALIZADO');
+      console.log('🧪 ='.repeat(50));
+
+    } catch (error) {
+      console.error('❌ Error en test completo:', error);
     }
   }
 

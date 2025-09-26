@@ -271,9 +271,18 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         is_combo_item: i.is_combo_item
       })));
 
-      items.forEach(item => {
+      items.forEach((item, index) => {
+        console.log(`🔍 ADMIN: Revisando item ${index}:`, {
+          id: item.id,
+          product_name: item.product_name,
+          combo_id: item.combo_id || 'NO_COMBO_ID',
+          is_combo_display: item.is_combo_display || false,
+          is_combo_item: item.is_combo_item || false,
+          quantity: item.quantity
+        });
+
         if (item.combo_id && item.is_combo_display) {
-          console.log('🎯 ADMIN: Encontrado combo display:', {
+          console.log('🎯 ADMIN: ✅ COMBO DISPLAY ENCONTRADO:', {
             combo_id: item.combo_id,
             combo_name: item.combo_name,
             quantity: item.quantity
@@ -286,10 +295,19 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
               combo_id: item.combo_id,
               quantity: item.quantity
             });
+            console.log('🎯 ADMIN: ✅ Combo agregado al array:', item.combo_id);
           } else {
             // Incrementar si ya existe
+            const oldQuantity = existingCombo.quantity;
             existingCombo.quantity += item.quantity;
+            console.log(`🎯 ADMIN: ✅ Combo incrementado: ${oldQuantity} → ${existingCombo.quantity}`);
           }
+        } else {
+          console.log(`🔍 ADMIN: ❌ Item ${index} NO es combo display:`, {
+            has_combo_id: !!item.combo_id,
+            is_combo_display: !!item.is_combo_display,
+            reason: !item.combo_id ? 'sin combo_id' : !item.is_combo_display ? 'no es display' : 'unknown'
+          });
         }
       });
 
@@ -321,10 +339,21 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         payment_method: formData.payment_method,
         discount_amount: formData.discount_amount,
         notes: formData.notes || undefined,
-        promotions_used: promotionsUsed.length > 0 ? promotionsUsed : undefined
+        promotions_used: promotionsUsed.length > 0 ? promotionsUsed : undefined,
+        combos_used: combosUsed.length > 0 ? combosUsed : undefined
       };
 
+      console.log('🚀 ADMIN: Ejecutando onSave...');
       const createdSale = await onSave(saleData);
+
+      console.log('📊 ADMIN: Resultado de onSave:', {
+        createdSale,
+        type: typeof createdSale,
+        isNull: createdSale === null,
+        isUndefined: createdSale === undefined,
+        isFalsy: !createdSale,
+        isTruthy: !!createdSale
+      });
 
       if (createdSale) {
         // Procesar combos usados después de crear la venta
@@ -359,7 +388,12 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         } else {
           console.log('ℹ️ ADMIN: No hay combos para procesar');
         }
-
+      } else {
+        console.log('❌ ADMIN: createdSale es falsy - no se procesarán combos:', {
+          createdSale,
+          combosUsed: combosUsed.length,
+          combosData: combosUsed
+        });
         // Reset form
         setItems([]);
         setFormData({

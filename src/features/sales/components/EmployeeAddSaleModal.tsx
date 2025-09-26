@@ -511,10 +511,21 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
         payment_method: formData.payment_method,
         discount_amount: formData.discount_amount,
         notes: formData.notes || undefined,
-        promotions_used: promotionsUsed.length > 0 ? promotionsUsed : undefined
+        promotions_used: promotionsUsed.length > 0 ? promotionsUsed : undefined,
+        combos_used: combosUsed.length > 0 ? combosUsed : undefined
       };
 
+      console.log('🚀 EMPLEADO: Ejecutando onSave...');
       const createdSale = await onSave(saleData);
+
+      console.log('📊 EMPLEADO: Resultado de onSave:', {
+        createdSale,
+        type: typeof createdSale,
+        isNull: createdSale === null,
+        isUndefined: createdSale === undefined,
+        isFalsy: !createdSale,
+        isTruthy: !!createdSale
+      });
 
       if (createdSale) {
         // Procesar combos usados después de crear la venta
@@ -549,7 +560,12 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
         } else {
           console.log('ℹ️ EMPLEADO: No hay combos para procesar');
         }
-
+      } else {
+        console.log('❌ EMPLEADO: createdSale es falsy - no se procesarán combos:', {
+          createdSale,
+          combosUsed: combosUsed.length,
+          combosData: combosUsed
+        });
         // Reset form
         setItems([]);
         setFormData({

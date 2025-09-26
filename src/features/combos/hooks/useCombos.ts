@@ -154,12 +154,14 @@ export function useCombos(initialFilters?: ComboFilters) {
     window.addEventListener('comboUpdated', handleComboEvents);
     window.addEventListener('comboDeleted', handleComboEvents);
     window.addEventListener('comboStatusChanged', handleComboEvents);
+    window.addEventListener('comboUsed', handleComboEvents); // Agregar evento de uso
 
     return () => {
       window.removeEventListener('comboCreated', handleComboEvents);
       window.removeEventListener('comboUpdated', handleComboEvents);
       window.removeEventListener('comboDeleted', handleComboEvents);
       window.removeEventListener('comboStatusChanged', handleComboEvents);
+      window.removeEventListener('comboUsed', handleComboEvents); // Limpiar evento de uso
     };
   }, [fetchCombos]);
 

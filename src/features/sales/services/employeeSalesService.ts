@@ -16,6 +16,7 @@ export interface CreateEmployeeSaleData {
   discount_amount?: number;
   notes?: string;
   promotions_used?: Array<{promotion_id: string, quantity: number}>;
+  combos_used?: Array<{combo_id: string, quantity: number}>;
 }
 
 export class EmployeeSalesService {
@@ -106,23 +107,46 @@ export class EmployeeSalesService {
         p_notes: saleData.notes || null
       });
 
-      const { data, error } = await supabase
-        .rpc('fn_create_sale_as_employee', {
-          p_items: saleData.items,
-          p_payment_method: saleData.payment_method,
-          p_payment_details: saleData.payment_details || null,
-          p_discount_amount: saleData.discount_amount || 0,
-          p_notes: saleData.notes || null
-        });
+      // Decide qué función usar según si hay combos
+      const hasCombos = saleData.combos_used && saleData.combos_used.length > 0;
+      const rpcFunction = hasCombos ? 'fn_create_sale_as_employee_with_combos' : 'fn_create_sale_as_employee';
+
+      console.log(`🚀 EMPLOYEE SERVICE: Ejecutando RPC ${rpcFunction}...`);
+      if (hasCombos) {
+        console.log('🎯 EMPLOYEE SERVICE: Combos detectados:', saleData.combos_used);
+      }
+      const startTime = Date.now();
+
+      const rpcParams: any = {
+        p_items: saleData.items,
+        p_payment_method: saleData.payment_method,
+        p_payment_details: saleData.payment_details || null,
+        p_discount_amount: saleData.discount_amount || 0,
+        p_notes: saleData.notes || null
+      };
+
+      // Añadir combos solo si estamos usando la función con combos
+      if (hasCombos) {
+        rpcParams.p_combos_used = saleData.combos_used;
+      }
+
+      const { data, error } = await supabase.rpc(rpcFunction, rpcParams);
+
+      const endTime = Date.now();
+      console.log(`⏱️ EMPLOYEE SERVICE: RPC completada en ${endTime - startTime}ms`);
+      console.log('📊 EMPLOYEE SERVICE: Resultado RPC:', { data, error });
 
       if (error) {
-        console.error('Error creating employee sale:', error);
+        console.error('❌ EMPLOYEE SERVICE: Error creating employee sale:', error);
         throw new Error(`Error al crear venta: ${error.message}`);
       }
 
       if (!data) {
+        console.error('❌ EMPLOYEE SERVICE: No data received from RPC');
         throw new Error('No se recibió ID de la venta creada');
       }
+
+      console.log('✅ EMPLOYEE SERVICE: Venta creada exitosamente, ID:', data);
 
       // Actualizar contadores de promociones si se usaron
       if (saleData.promotions_used && saleData.promotions_used.length > 0) {

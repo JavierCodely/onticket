@@ -1,0 +1,130 @@
+  cocacola: necesita 2, disponible 29, OK: true
+EmployeeAddSaleModal.tsx:975     SKY: necesita 1, disponible 11, OK: true
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - Combo: 2x cocacola + 1x SKY: {has_promotion: false, is_combo_display: true, is_combo_item: false, unit_price: 22100, product_sale_price: 31000, …}
+EmployeeAddSaleModal.tsx:93 ✅ EMPLOYEE: Usando precio combo display: 22100
+EmployeeAddSaleModal.tsx:669 💰 Employee Subtotal - Combo: 2x cocacola + 1x SKY: {price: 22100, quantity: 1, subtotalForItem: 22100, isComboItem: false, isComboDisplay: true, …}
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: (3) [{…}, {…}, {…}]
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:975     cocacola: necesita 2, disponible 29, OK: true
+EmployeeAddSaleModal.tsx:975     SKY: necesita 1, disponible 11, OK: true
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+@supabase_supabase-js.js?v=d1bc2df8:4223  GET https://mdmgewtqnnkiohxdwgkz.supabase.co/rest/v1/combos_with_details?select=id%2Cname%2Cstatus%2Cis_available%2Ceffective_stock%2Cstock_quantity 400 (Bad Request)
+(anonymous) @ @supabase_supabase-js.js?v=d1bc2df8:4223
+(anonymous) @ @supabase_supabase-js.js?v=d1bc2df8:4244
+fulfilled @ @supabase_supabase-js.js?v=d1bc2df8:4196
+Promise.then
+step @ @supabase_supabase-js.js?v=d1bc2df8:4209
+(anonymous) @ @supabase_supabase-js.js?v=d1bc2df8:4211
+__awaiter6 @ @supabase_supabase-js.js?v=d1bc2df8:4193
+(anonymous) @ @supabase_supabase-js.js?v=d1bc2df8:4234
+then @ @supabase_supabase-js.js?v=d1bc2df8:90
+combosService.ts:74 🔍 Debug - Todos los combos: null
+combosService.ts:100 ✅ CombosService.getActiveCombos exitoso: 1 registros
+EmployeeAddSaleModal.tsx:118 🔍 EMPLEADO: Combos cargados desde servicio: [{…}]
+EmployeeAddSaleModal.tsx:342 Employee: Checking stock before creating sale
+EmployeeAddSaleModal.tsx:353 Employee: Checking stock for product IDs (sin displays): (2) ['5bac0525-895c-439d-a53c-1d9a8c26212c', 'e88ea28c-7fa4-4246-a85a-f95d74de0559']
+EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - Combo: 2x cocacola + 1x SKY: {has_promotion: false, is_combo_display: true, is_combo_item: false, unit_price: 22100, product_sale_price: 31000, …}
+EmployeeAddSaleModal.tsx:93 ✅ EMPLOYEE: Usando precio combo display: 22100
+EmployeeAddSaleModal.tsx:669 💰 Employee Subtotal - Combo: 2x cocacola + 1x SKY: {price: 22100, quantity: 1, subtotalForItem: 22100, isComboItem: false, isComboDisplay: true, …}
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: (3) [{…}, {…}, {…}]
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:975     cocacola: necesita 2, disponible 29, OK: true
+EmployeeAddSaleModal.tsx:975     SKY: necesita 1, disponible 11, OK: true
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - Combo: 2x cocacola + 1x SKY: {has_promotion: false, is_combo_display: true, is_combo_item: false, unit_price: 22100, product_sale_price: 31000, …}
+EmployeeAddSaleModal.tsx:93 ✅ EMPLOYEE: Usando precio combo display: 22100
+EmployeeAddSaleModal.tsx:669 💰 Employee Subtotal - Combo: 2x cocacola + 1x SKY: {price: 22100, quantity: 1, subtotalForItem: 22100, isComboItem: false, isComboDisplay: true, …}
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: (3) [{…}, {…}, {…}]
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:975     cocacola: necesita 2, disponible 29, OK: true
+EmployeeAddSaleModal.tsx:975     SKY: necesita 1, disponible 11, OK: true
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:390 Employee Stock validation for cocacola: {totalQuantityInCart: 2, currentStock: 29, condition: false, wouldAddToIssues: false, isComboItem: true, …}
+EmployeeAddSaleModal.tsx:390 Employee Stock validation for SKY: {totalQuantityInCart: 1, currentStock: 11, condition: false, wouldAddToIssues: false, isComboItem: true, …}
+EmployeeAddSaleModal.tsx:458 🔍 EMPLEADO: Revisando items para combos: (3) [{…}, {…}, {…}]
+EmployeeAddSaleModal.tsx:468 🎯 EMPLEADO: Encontrado combo display: {combo_id: '664ba5c9-dbff-47f6-8110-d969a2ba199e', combo_name: 'Combo: 2x cocacola + 1x SKY', quantity: 1}
+EmployeeAddSaleModal.tsx:488 🎯 EMPLEADO: Combos recolectados para uso: [{…}]
+EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - cocacola: {has_promotion: false, is_combo_display: false, is_combo_item: true, unit_price: 2138.7096774193546, product_sale_price: 3000, …}
+EmployeeAddSaleModal.tsx:97 ✅ EMPLOYEE: Usando precio combo item: 2138.7096774193546
+EmployeeAddSaleModal.tsx:495 💰 EMPLOYEE SALE DATA - cocacola: {hasPromotion: false, originalItemPrice: 2138.7096774193546, correctPrice: 2138.7096774193546, productSalePrice: 3000, productCostPrice: undefined, …}
+EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - SKY: {has_promotion: false, is_combo_display: false, is_combo_item: true, unit_price: 17822.580645161288, product_sale_price: 25000, …}
+EmployeeAddSaleModal.tsx:97 ✅ EMPLOYEE: Usando precio combo item: 17822.580645161288
+EmployeeAddSaleModal.tsx:495 💰 EMPLOYEE SALE DATA - SKY: {hasPromotion: false, originalItemPrice: 17822.580645161288, correctPrice: 17822.580645161288, productSalePrice: 25000, productCostPrice: undefined, …}
+employeeSalesService.ts:101 Creating employee sale with data: {p_items: Array(2), p_payment_method: 'transfer', p_payment_details: null, p_discount_amount: 0, p_notes: null}
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+useEmployeeSales.ts:202 Employee view - Sale change detected: {schema: 'public', table: 'sales', commit_timestamp: '2025-09-26T06:41:15.834Z', eventType: 'INSERT', new: {…}, …}
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
+EmployeeAddSaleModal.tsx:946   Items en carrito: []
+EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
+EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
