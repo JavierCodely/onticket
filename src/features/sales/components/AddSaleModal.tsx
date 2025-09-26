@@ -300,11 +300,24 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
         employee_name: formData.employee_name,
         items: items
           .filter(item => !item.is_combo_display) // Excluir displays de combo
-          .map(item => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-            unit_price: item.unit_price
-          })),
+          .map(item => {
+            const correctPrice = getCorrectPriceForSale(item);
+            console.log(`💰 SALE DATA - ${item.product_name}:`, {
+              hasPromotion: !!(item.promotion_data && item.promotion_data.has_promotion),
+              originalItemPrice: item.unit_price,
+              correctPrice,
+              productSalePrice: item.product_sale_price,
+              productCostPrice: item.product_cost_price,
+              isAdminSale,
+              quantity: item.quantity
+            });
+
+            return {
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: correctPrice // Usar el precio correcto según promoción/rol
+            };
+          }),
         payment_method: formData.payment_method,
         discount_amount: formData.discount_amount,
         notes: formData.notes || undefined,
@@ -382,28 +395,33 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
     return isAdminSale ? product.cost_price : product.sale_price;
   };
 
+  // Función helper para determinar el precio correcto de un item para la venta
+  const getCorrectPriceForSale = (item: SaleItemForm) => {
+    // Determinar el precio correcto basado en si hay promoción activa
+    if (item.promotion_data && item.promotion_data.has_promotion) {
+      // Hay promoción activa: usar precio promocional
+      return item.promotion_data.final_price;
+    } else if (item.is_combo_display) {
+      // Los combos SIEMPRE usan su precio original, sin importar el rol
+      return item.unit_price;
+    } else {
+      // NO hay promoción activa: usar precios normales según el rol
+      if (isAdminSale && item.product_cost_price) {
+        return item.product_cost_price; // Admin usa precio de compra
+      } else {
+        return item.product_sale_price; // Empleado usa precio de venta
+      }
+    }
+  };
+
   const subtotal = items.reduce((sum, item) => {
     // Excluir items individuales de combo del subtotal (solo incluir el display)
     if (item.is_combo_item) {
       return sum;
     }
 
-    // Determinar el precio correcto basado en si hay promoción activa
-    let price;
-    if (item.promotion_data && item.promotion_data.has_promotion) {
-      // Hay promoción activa: usar precio promocional
-      price = item.promotion_data.final_price;
-    } else if (item.is_combo_display) {
-      // Los combos SIEMPRE usan su precio original, sin importar el rol
-      price = item.unit_price;
-    } else {
-      // NO hay promoción activa: usar precios normales según el rol
-      if (isAdminSale && item.product_cost_price) {
-        price = item.product_cost_price; // Admin usa precio de compra
-      } else {
-        price = item.product_sale_price; // Empleado usa precio de venta
-      }
-    }
+    // Usar la función helper para obtener el precio correcto
+    const price = getCorrectPriceForSale(item);
 
     // Debug para todos los items (especialmente combos)
     console.log(`💰 Subtotal - ${item.product_name}:`, {
@@ -2052,16 +2070,8 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
                       {/* Total */}
                       <div className="font-medium text-sm w-16 text-right">
                         ${(() => {
-                          if (item.promotion_data && item.promotion_data.has_promotion) {
-                            // Hay promoción activa: usar total promocional
-                            return item.promotion_data.total_final.toFixed(2);
-                          } else {
-                            // NO hay promoción activa: usar precios normales según el rol
-                            const price = isAdminSale && item.product_cost_price ?
-                              item.product_cost_price :  // Admin usa precio de compra
-                              item.product_sale_price;   // Empleado usa precio de venta
-                            return (price * item.quantity).toFixed(2);
-                          }
+                          const price = getCorrectPriceForSale(item);
+                          return (price * item.quantity).toFixed(2);
                         })()}
                       </div>
 
