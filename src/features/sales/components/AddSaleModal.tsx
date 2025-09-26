@@ -397,18 +397,36 @@ export const AddSaleModal: React.FC<AddSaleModalProps> = ({
 
   // Función helper para determinar el precio correcto de un item para la venta
   const getCorrectPriceForSale = (item: SaleItemForm) => {
+    console.log(`🔍 ADMIN getCorrectPriceForSale - ${item.product_name}:`, {
+      has_promotion: !!(item.promotion_data && item.promotion_data.has_promotion),
+      is_combo_display: !!item.is_combo_display,
+      is_combo_item: !!item.is_combo_item,
+      unit_price: item.unit_price,
+      product_sale_price: item.product_sale_price,
+      product_cost_price: item.product_cost_price,
+      isAdminSale
+    });
+
     // Determinar el precio correcto basado en si hay promoción activa
     if (item.promotion_data && item.promotion_data.has_promotion) {
       // Hay promoción activa: usar precio promocional
+      console.log(`✅ ADMIN: Usando precio promocional: ${item.promotion_data.final_price}`);
       return item.promotion_data.final_price;
     } else if (item.is_combo_display) {
-      // Los combos SIEMPRE usan su precio original, sin importar el rol
+      // Los combos display SIEMPRE usan su precio configurado
+      console.log(`✅ ADMIN: Usando precio combo display: ${item.unit_price}`);
+      return item.unit_price;
+    } else if (item.is_combo_item) {
+      // Los items de combo SIEMPRE usan el precio calculado proporcionalmente
+      console.log(`✅ ADMIN: Usando precio combo item: ${item.unit_price}`);
       return item.unit_price;
     } else {
       // NO hay promoción activa: usar precios normales según el rol
       if (isAdminSale && item.product_cost_price) {
+        console.log(`✅ ADMIN: Usando precio de compra: ${item.product_cost_price}`);
         return item.product_cost_price; // Admin usa precio de compra
       } else {
+        console.log(`✅ ADMIN: Usando precio de venta: ${item.product_sale_price}`);
         return item.product_sale_price; // Empleado usa precio de venta
       }
     }

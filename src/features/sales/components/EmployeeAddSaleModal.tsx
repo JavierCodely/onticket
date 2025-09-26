@@ -45,6 +45,7 @@ interface SaleItemForm {
   unit_price?: number;
   available_stock: number;
   product_sale_price: number;
+  product_cost_price?: number; // Precio de compra para admins
   promotion_data?: PromotionPriceResult | null;
   disable_promotions?: boolean;
   // Campos para combos
@@ -66,6 +67,46 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
   const { products, fetchProducts } = useProducts();
   const { employee } = useAuth();
   const { activePromotions, refetch: refetchPromotions } = useActivePromotions();
+
+  // Determinar si el empleado actual es admin
+  const isAdminSale = employee?.category === 'admin';
+
+  // Función helper para determinar el precio correcto de un item para la venta
+  const getCorrectPriceForSale = (item: SaleItemForm) => {
+    console.log(`🔍 EMPLOYEE getCorrectPriceForSale - ${item.product_name}:`, {
+      has_promotion: !!(item.promotion_data && item.promotion_data.has_promotion),
+      is_combo_display: !!item.is_combo_display,
+      is_combo_item: !!item.is_combo_item,
+      unit_price: item.unit_price,
+      product_sale_price: item.product_sale_price,
+      product_cost_price: item.product_cost_price,
+      isAdminSale
+    });
+
+    // Determinar el precio correcto basado en si hay promoción activa
+    if (item.promotion_data && item.promotion_data.has_promotion) {
+      // Hay promoción activa: usar precio promocional
+      console.log(`✅ EMPLOYEE: Usando precio promocional: ${item.promotion_data.final_price}`);
+      return item.promotion_data.final_price;
+    } else if (item.is_combo_display) {
+      // Los combos display SIEMPRE usan su precio configurado
+      console.log(`✅ EMPLOYEE: Usando precio combo display: ${item.unit_price}`);
+      return item.unit_price;
+    } else if (item.is_combo_item) {
+      // Los items de combo SIEMPRE usan el precio calculado proporcionalmente
+      console.log(`✅ EMPLOYEE: Usando precio combo item: ${item.unit_price}`);
+      return item.unit_price;
+    } else {
+      // NO hay promoción activa: usar precios normales según el rol
+      if (isAdminSale && item.product_cost_price) {
+        console.log(`✅ EMPLOYEE: Usando precio de compra: ${item.product_cost_price}`);
+        return item.product_cost_price; // Admin usa precio de compra
+      } else {
+        console.log(`✅ EMPLOYEE: Usando precio de venta: ${item.product_sale_price}`);
+        return item.product_sale_price; // Empleado usa precio de venta
+      }
+    }
+  };
 
   // Estado para combos
   const [availableCombos, setAvailableCombos] = useState<ComboWithDetails[]>([]);
@@ -192,6 +233,9 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
         totalForThisProduct: unitPriceInCombo * comboItem.quantity_per_combo
       });
 
+      // Buscar el producto completo para obtener cost_price
+      const fullProduct = products.find(p => p.id === comboItem.product_id);
+
       return {
         id: `combo-${combo.id}-${comboItem.product_id}-${Date.now()}-${Math.random()}`,
         product_id: comboItem.product_id,
@@ -200,6 +244,7 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
         unit_price: unitPriceInCombo,
         available_stock: comboItem.available_stock,
         product_sale_price: originalUnitPrice,
+        product_cost_price: fullProduct?.cost_price, // Agregar precio de compra
         promotion_data: null,
         disable_promotions: true,
         // Campos específicos de combo
@@ -445,11 +490,24 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       const saleData: CreateEmployeeSaleData = {
         items: items
           .filter(item => !item.is_combo_display) // Excluir displays de combo
-          .map(item => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-            unit_price: item.unit_price
-          })),
+          .map(item => {
+            const correctPrice = getCorrectPriceForSale(item);
+            console.log(`💰 EMPLOYEE SALE DATA - ${item.product_name}:`, {
+              hasPromotion: !!(item.promotion_data && item.promotion_data.has_promotion),
+              originalItemPrice: item.unit_price,
+              correctPrice,
+              productSalePrice: item.product_sale_price,
+              productCostPrice: item.product_cost_price,
+              isAdminSale,
+              quantity: item.quantity
+            });
+
+            return {
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: correctPrice // Usar el precio correcto según promoción/rol
+            };
+          }),
         payment_method: formData.payment_method,
         discount_amount: formData.discount_amount,
         notes: formData.notes || undefined,
@@ -605,10 +663,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       return sum;
     }
 
-    // Debug para todos los items (especialmente combos)
-    const price = (item.promotion_data && item.promotion_data.has_promotion)
-      ? item.promotion_data.final_price
-      : (item.unit_price || item.product_sale_price);
+    // Usar la función helper para obtener el precio correcto
+    const price = getCorrectPriceForSale(item);
 
     console.log(`💰 Employee Subtotal - ${item.product_name}:`, {
       price,
@@ -619,15 +675,12 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       comboName: item.combo_name || 'N/A',
       unit_price: item.unit_price,
       product_sale_price: item.product_sale_price,
-      hasPromotion: !!(item.promotion_data && item.promotion_data.has_promotion)
+      product_cost_price: item.product_cost_price,
+      hasPromotion: !!(item.promotion_data && item.promotion_data.has_promotion),
+      isAdminSale
     });
 
-    // Usar precio de promoción si está disponible, sino usar precio normal
-    if (item.promotion_data && item.promotion_data.has_promotion) {
-      return sum + item.promotion_data.final_price * item.quantity;
-    } else {
-      return sum + (item.unit_price || item.product_sale_price) * item.quantity;
-    }
+    return sum + price * item.quantity;
   }, 0);
   const total = subtotal - formData.discount_amount;
 
@@ -760,6 +813,7 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
         quantity: 1,
         unit_price: product.sale_price,
         product_sale_price: product.sale_price,
+        product_cost_price: product.cost_price, // Agregar precio de compra
         available_stock: product.available_stock,
         disable_promotions: forceNormalPrice, // Deshabilitar promociones si se fuerza precio normal
         promotion_data: forceNormalPrice ? {
@@ -850,6 +904,7 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
             quantity: quantityToAdd,
             unit_price: finalPrice,
             product_sale_price: product.sale_price,
+            product_cost_price: product.cost_price, // Agregar precio de compra
             available_stock: product.available_stock,
             promotion_data: {
               has_promotion: shouldApplyPromotion, // Solo si cumple cantidad mínima
@@ -1830,13 +1885,18 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                         {/* Precio unitario con promociones */}
                         <div className="w-20 text-right">
                           {!item.is_combo_item ? (
-                            <PromotionPriceSimple
-                              productId={item.product_id}
-                              quantity={item.quantity}
-                              originalPrice={item.product_sale_price}
-                              onPriceChange={(promotionData) => handlePromotionChange(item.id, promotionData)}
-                              disablePromotions={item.disable_promotions || false}
-                            />
+                            <div>
+                              <PromotionPriceSimple
+                                productId={item.product_id}
+                                quantity={item.quantity}
+                                originalPrice={item.product_sale_price}
+                                onPriceChange={(promotionData) => handlePromotionChange(item.id, promotionData)}
+                                disablePromotions={item.disable_promotions || false}
+                              />
+                              {isAdminSale && item.product_cost_price && !item.promotion_data?.has_promotion && (
+                                <div className="text-xs text-blue-600">Admin</div>
+                              )}
+                            </div>
                           ) : (
                             // Para items de combo, mostrar precio fijo
                             <div className="text-sm text-purple-700 font-medium">
@@ -1848,12 +1908,8 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                         {/* Total */}
                         <div className="font-medium text-sm w-16 text-right">
                           ${(() => {
-                            if (item.promotion_data && item.promotion_data.has_promotion) {
-                              return item.promotion_data.total_final.toFixed(2);
-                            } else {
-                              const price = item.unit_price || item.product_sale_price;
-                              return (price * item.quantity).toFixed(2);
-                            }
+                            const price = getCorrectPriceForSale(item);
+                            return (price * item.quantity).toFixed(2);
                           })()}
                         </div>
 
