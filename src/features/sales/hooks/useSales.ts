@@ -64,31 +64,23 @@ export const useSales = () => {
     try {
       setError(null);
       const saleId = await salesService.createSale(saleData);
-      // Recargar usando la fecha actual específica para evitar problemas de zona horaria
-      const today = new Date();
-      const localDateString = today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-      await loadSales(localDateString, localDateString);
+      // Recargar usando el rango de fechas actual
+      await loadSales(currentDateRange.start, currentDateRange.end);
       return saleId;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al crear venta';
       setError(errorMessage);
       throw err;
     }
-  }, [loadSales]);
+  }, [loadSales, currentDateRange]);
 
   const updateSale = useCallback(async (saleId: string, updateData: UpdateSaleData) => {
     try {
       setError(null);
       const success = await salesService.updateSale(saleId, updateData);
       if (success) {
-        // Recargar usando la fecha actual específica para evitar problemas de zona horaria
-        const today = new Date();
-        const localDateString = today.getFullYear() + '-' +
-          String(today.getMonth() + 1).padStart(2, '0') + '-' +
-          String(today.getDate()).padStart(2, '0');
-        await loadSales(localDateString, localDateString);
+        // Recargar usando el rango de fechas actual
+        await loadSales(currentDateRange.start, currentDateRange.end);
       }
       return success;
     } catch (err) {
@@ -96,59 +88,47 @@ export const useSales = () => {
       setError(errorMessage);
       throw err;
     }
-  }, [loadSales]);
+  }, [loadSales, currentDateRange]);
 
   const addSaleItem = useCallback(async (saleId: string, productId: string, quantity: number, unitPrice?: number) => {
     try {
       setError(null);
       const itemId = await salesService.addSaleItem(saleId, productId, quantity, unitPrice);
-      // Recargar usando la fecha actual específica para evitar problemas de zona horaria
-      const today = new Date();
-      const localDateString = today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-      await loadSales(localDateString, localDateString);
+      // Recargar usando el rango de fechas actual
+      await loadSales(currentDateRange.start, currentDateRange.end);
       return itemId;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al agregar item';
       setError(errorMessage);
       throw err;
     }
-  }, [loadSales]);
+  }, [loadSales, currentDateRange]);
 
   const updateSaleItem = useCallback(async (itemId: string, quantity?: number, unitPrice?: number): Promise<void> => {
     try {
       setError(null);
       await salesService.updateSaleItem(itemId, quantity, unitPrice);
-      // Recargar usando la fecha actual específica para evitar problemas de zona horaria
-      const today = new Date();
-      const localDateString = today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-      await loadSales(localDateString, localDateString);
+      // Recargar usando el rango de fechas actual
+      await loadSales(currentDateRange.start, currentDateRange.end);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar item';
       setError(errorMessage);
       throw err;
     }
-  }, [loadSales]);
+  }, [loadSales, currentDateRange]);
 
   const removeSaleItem = useCallback(async (itemId: string): Promise<void> => {
     try {
       setError(null);
       await salesService.removeSaleItem(itemId);
-      // Recargar usando la fecha actual específica para evitar problemas de zona horaria
-      const today = new Date();
-      const localDateString = today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-      await loadSales(localDateString, localDateString);
+      // Recargar usando el rango de fechas actual
+      await loadSales(currentDateRange.start, currentDateRange.end);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar item';
       setError(errorMessage);
       throw err;
     }
-  }, [loadSales]);
+  }, [loadSales, currentDateRange]);
 
   const refundSale = useCallback(async (saleId: string, reason: string): Promise<boolean> => {
     try {
@@ -203,8 +183,28 @@ export const useSales = () => {
       const matchesStatus = !status || sale.status === status;
       const matchesEmployee = !employeeName || sale.employee_name.toLowerCase().includes(employeeName.toLowerCase());
 
-      // Filtro por fechas - usar solo la parte de fecha sin hora para comparación
-      const saleDateStr = new Date(sale.sale_date).toISOString().split('T')[0];
+      // Filtro por fechas - extraer fecha local sin conversión UTC
+      // Usar el número de la venta que ya tiene la fecha correcta, o extraer de forma local
+      let saleDateStr = '';
+
+      if (sale.sale_number && sale.sale_number.includes('-')) {
+        // Extraer fecha del número de venta que ya está correcto (YYYYMMDD-XXXX)
+        const datePart = sale.sale_number.split('-')[0];
+        if (datePart.length === 8) {
+          const year = datePart.substring(0, 4);
+          const month = datePart.substring(4, 6);
+          const day = datePart.substring(6, 8);
+          saleDateStr = `${year}-${month}-${day}`;
+        }
+      }
+
+      // Fallback: usar método alternativo si no se pudo extraer del número
+      if (!saleDateStr) {
+        // Crear fecha en zona horaria local interpretando la cadena como local
+        const parts = sale.sale_date.split('T')[0]; // Solo la parte de fecha
+        saleDateStr = parts;
+      }
+
       const matchesStartDate = !startDate || saleDateStr >= startDate;
       const matchesEndDate = !endDate || saleDateStr <= endDate;
 

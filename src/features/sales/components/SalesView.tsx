@@ -82,16 +82,25 @@ export const SalesView: React.FC = () => {
     endDate || undefined
   );
 
-  // Calcular estadísticas basadas en las ventas filtradas
-  const calculateFilteredStats = () => {
-    const completedSales = filteredSales.filter(sale => sale.status === 'completed');
+  // NUEVO: Calcular totales directamente desde filteredSales sin función intermedia
+  // Filtrar solo ventas completadas de las ventas ya filtradas
+  const completedFilteredSales = filteredSales.filter(sale => sale.status === 'completed');
 
-    const totalSales = completedSales.length;
-    const totalAmount = completedSales.reduce((sum, sale) => sum + sale.total_amount, 0);
-    const avgSaleAmount = totalSales > 0 ? totalAmount / totalSales : 0;
+  // Calcular totales básicos
+  const totalSales = completedFilteredSales.length;
+  const totalAmount = completedFilteredSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+  const avgSaleAmount = totalSales > 0 ? totalAmount / totalSales : 0;
 
-    // Payment methods breakdown
-    const paymentMethods = completedSales.reduce((acc, sale) => {
+  // Calcular empleados únicos con ventas
+  const uniqueEmployees = new Set(completedFilteredSales.map(sale => sale.employee_name));
+  const employeesWithSales = uniqueEmployees.size;
+
+  // Crear objeto stats con los mismos datos que antes para compatibilidad
+  const stats = {
+    totalSales,
+    totalAmount,
+    avgSaleAmount,
+    paymentMethods: completedFilteredSales.reduce((acc, sale) => {
       const method = sale.payment_method;
       if (!acc[method]) {
         acc[method] = { count: 0, amount: 0 };
@@ -99,10 +108,8 @@ export const SalesView: React.FC = () => {
       acc[method].count += 1;
       acc[method].amount += sale.total_amount;
       return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
-
-    // Employees breakdown
-    const employees = completedSales.reduce((acc, sale) => {
+    }, {} as Record<string, { count: number; amount: number }>),
+    employees: completedFilteredSales.reduce((acc, sale) => {
       const employeeName = sale.employee_name;
       if (!acc[employeeName]) {
         acc[employeeName] = { count: 0, amount: 0 };
@@ -110,39 +117,36 @@ export const SalesView: React.FC = () => {
       acc[employeeName].count += 1;
       acc[employeeName].amount += sale.total_amount;
       return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
-
-    return {
-      totalSales,
-      totalAmount,
-      avgSaleAmount,
-      paymentMethods,
-      employees
-    };
+    }, {} as Record<string, { count: number; amount: number }>),
+    employeesWithSales
   };
-
-  const stats = calculateFilteredStats();
 
   // Determinar el texto del período para las etiquetas
   const getPeriodLabel = () => {
+    // Función para convertir fecha string (YYYY-MM-DD) a fecha local sin problemas UTC
+    const createLocalDate = (dateStr: string) => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day); // month - 1 porque Date usa meses 0-indexados
+    };
+
     if (startDate && endDate) {
       if (startDate === endDate) {
-        const date = new Date(startDate);
         const today = getTodayLocal();
         if (startDate === today) {
           return 'de Hoy';
         }
+        const date = createLocalDate(startDate);
         return `del ${date.toLocaleDateString('es-AR')}`;
       } else {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        const start = createLocalDate(startDate);
+        const end = createLocalDate(endDate);
         return `del ${start.toLocaleDateString('es-AR')} al ${end.toLocaleDateString('es-AR')}`;
       }
     } else if (startDate) {
-      const date = new Date(startDate);
+      const date = createLocalDate(startDate);
       return `desde el ${date.toLocaleDateString('es-AR')}`;
     } else if (endDate) {
-      const date = new Date(endDate);
+      const date = createLocalDate(endDate);
       return `hasta el ${date.toLocaleDateString('es-AR')}`;
     }
     return 'de Hoy'; // Por defecto
@@ -161,11 +165,36 @@ export const SalesView: React.FC = () => {
 
   // Cargar ventas cuando cambien los filtros de fecha
   useEffect(() => {
-    // Usar las fechas directamente sin conversión UTC
-    loadSales(startDate, endDate).catch(error => {
-      console.error('Error loading filtered sales:', error);
-    });
-  }, [startDate, endDate, loadSales]);
+    // Cargar un rango amplio de datos para evitar problemas de zona horaria del backend
+    // El filtrado exacto se hace en el frontend
+    if (startDate || endDate) {
+      // Cargar desde una semana antes hasta una semana después para tener margen
+      const start = startDate || endDate;
+      const end = endDate || startDate;
+
+      if (start && end) {
+        const startDateObj = new Date(start);
+        const endDateObj = new Date(end);
+
+        // Ampliar el rango por seguridad
+        startDateObj.setDate(startDateObj.getDate() - 2);
+        endDateObj.setDate(endDateObj.getDate() + 2);
+
+        const expandedStart = `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, '0')}-${String(startDateObj.getDate()).padStart(2, '0')}`;
+        const expandedEnd = `${endDateObj.getFullYear()}-${String(endDateObj.getMonth() + 1).padStart(2, '0')}-${String(endDateObj.getDate()).padStart(2, '0')}`;
+
+        loadSales(expandedStart, expandedEnd).catch(error => {
+          console.error('Error loading filtered sales:', error);
+        });
+      }
+    } else {
+      // Sin filtros, cargar del día actual
+      const today = getTodayLocal();
+      loadSales(today, today).catch(error => {
+        console.error('Error loading today sales:', error);
+      });
+    }
+  }, [startDate, endDate, loadSales, getTodayLocal]);
 
   // Update selected sale when sales data changes
   useEffect(() => {
@@ -317,7 +346,7 @@ export const SalesView: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Empleados con Ventas {periodLabel}</p>
-                <p className="text-2xl font-bold">{Object.keys(stats.employees).length}</p>
+                <p className="text-2xl font-bold">{stats.employeesWithSales}</p>
               </div>
               <Users className="h-8 w-8 text-orange-600" />
             </div>

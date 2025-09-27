@@ -15,18 +15,13 @@ export class SalesService {
         .order('sale_date', { ascending: false });
 
       if (startDate) {
-        // Convertir fecha local a UTC para Argentina (UTC-3)
-        // Ajustar el inicio del día a las 03:00:00 UTC (00:00:00 ART)
-        query = query.gte('sale_date', startDate + 'T03:00:00Z');
+        // Usar directamente la fecha sin conversión UTC para evitar problemas de zona horaria
+        query = query.gte('sale_date', startDate + 'T00:00:00');
       }
 
       if (endDate) {
-        // Convertir fecha local a UTC para Argentina (UTC-3)
-        // Ajustar el final del día a las 02:59:59 UTC del día siguiente (23:59:59 ART)
-        const nextDay = new Date(endDate);
-        nextDay.setDate(nextDay.getDate() + 1);
-        const nextDateString = nextDay.toISOString().split('T')[0];
-        query = query.lt('sale_date', nextDateString + 'T03:00:00Z');
+        // Usar directamente la fecha final sin conversión UTC
+        query = query.lte('sale_date', endDate + 'T23:59:59');
       }
 
       const { data, error } = await query;

@@ -1,130 +1,204 @@
-  cocacola: necesita 2, disponible 29, OK: true
-EmployeeAddSaleModal.tsx:975     SKY: necesita 1, disponible 11, OK: true
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - Combo: 2x cocacola + 1x SKY: {has_promotion: false, is_combo_display: true, is_combo_item: false, unit_price: 22100, product_sale_price: 31000, …}
-EmployeeAddSaleModal.tsx:93 ✅ EMPLOYEE: Usando precio combo display: 22100
-EmployeeAddSaleModal.tsx:669 💰 Employee Subtotal - Combo: 2x cocacola + 1x SKY: {price: 22100, quantity: 1, subtotalForItem: 22100, isComboItem: false, isComboDisplay: true, …}
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: (3) [{…}, {…}, {…}]
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:975     cocacola: necesita 2, disponible 29, OK: true
-EmployeeAddSaleModal.tsx:975     SKY: necesita 1, disponible 11, OK: true
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-@supabase_supabase-js.js?v=d1bc2df8:4223  GET https://mdmgewtqnnkiohxdwgkz.supabase.co/rest/v1/combos_with_details?select=id%2Cname%2Cstatus%2Cis_available%2Ceffective_stock%2Cstock_quantity 400 (Bad Request)
-(anonymous) @ @supabase_supabase-js.js?v=d1bc2df8:4223
-(anonymous) @ @supabase_supabase-js.js?v=d1bc2df8:4244
-fulfilled @ @supabase_supabase-js.js?v=d1bc2df8:4196
-Promise.then
-step @ @supabase_supabase-js.js?v=d1bc2df8:4209
-(anonymous) @ @supabase_supabase-js.js?v=d1bc2df8:4211
-__awaiter6 @ @supabase_supabase-js.js?v=d1bc2df8:4193
-(anonymous) @ @supabase_supabase-js.js?v=d1bc2df8:4234
-then @ @supabase_supabase-js.js?v=d1bc2df8:90
-combosService.ts:74 🔍 Debug - Todos los combos: null
-combosService.ts:100 ✅ CombosService.getActiveCombos exitoso: 1 registros
-EmployeeAddSaleModal.tsx:118 🔍 EMPLEADO: Combos cargados desde servicio: [{…}]
-EmployeeAddSaleModal.tsx:342 Employee: Checking stock before creating sale
-EmployeeAddSaleModal.tsx:353 Employee: Checking stock for product IDs (sin displays): (2) ['5bac0525-895c-439d-a53c-1d9a8c26212c', 'e88ea28c-7fa4-4246-a85a-f95d74de0559']
-EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - Combo: 2x cocacola + 1x SKY: {has_promotion: false, is_combo_display: true, is_combo_item: false, unit_price: 22100, product_sale_price: 31000, …}
-EmployeeAddSaleModal.tsx:93 ✅ EMPLOYEE: Usando precio combo display: 22100
-EmployeeAddSaleModal.tsx:669 💰 Employee Subtotal - Combo: 2x cocacola + 1x SKY: {price: 22100, quantity: 1, subtotalForItem: 22100, isComboItem: false, isComboDisplay: true, …}
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: (3) [{…}, {…}, {…}]
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:975     cocacola: necesita 2, disponible 29, OK: true
-EmployeeAddSaleModal.tsx:975     SKY: necesita 1, disponible 11, OK: true
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - Combo: 2x cocacola + 1x SKY: {has_promotion: false, is_combo_display: true, is_combo_item: false, unit_price: 22100, product_sale_price: 31000, …}
-EmployeeAddSaleModal.tsx:93 ✅ EMPLOYEE: Usando precio combo display: 22100
-EmployeeAddSaleModal.tsx:669 💰 Employee Subtotal - Combo: 2x cocacola + 1x SKY: {price: 22100, quantity: 1, subtotalForItem: 22100, isComboItem: false, isComboDisplay: true, …}
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: (3) [{…}, {…}, {…}]
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:975     cocacola: necesita 2, disponible 29, OK: true
-EmployeeAddSaleModal.tsx:975     SKY: necesita 1, disponible 11, OK: true
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:390 Employee Stock validation for cocacola: {totalQuantityInCart: 2, currentStock: 29, condition: false, wouldAddToIssues: false, isComboItem: true, …}
-EmployeeAddSaleModal.tsx:390 Employee Stock validation for SKY: {totalQuantityInCart: 1, currentStock: 11, condition: false, wouldAddToIssues: false, isComboItem: true, …}
-EmployeeAddSaleModal.tsx:458 🔍 EMPLEADO: Revisando items para combos: (3) [{…}, {…}, {…}]
-EmployeeAddSaleModal.tsx:468 🎯 EMPLEADO: Encontrado combo display: {combo_id: '664ba5c9-dbff-47f6-8110-d969a2ba199e', combo_name: 'Combo: 2x cocacola + 1x SKY', quantity: 1}
-EmployeeAddSaleModal.tsx:488 🎯 EMPLEADO: Combos recolectados para uso: [{…}]
-EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - cocacola: {has_promotion: false, is_combo_display: false, is_combo_item: true, unit_price: 2138.7096774193546, product_sale_price: 3000, …}
-EmployeeAddSaleModal.tsx:97 ✅ EMPLOYEE: Usando precio combo item: 2138.7096774193546
-EmployeeAddSaleModal.tsx:495 💰 EMPLOYEE SALE DATA - cocacola: {hasPromotion: false, originalItemPrice: 2138.7096774193546, correctPrice: 2138.7096774193546, productSalePrice: 3000, productCostPrice: undefined, …}
-EmployeeAddSaleModal.tsx:76 🔍 EMPLOYEE getCorrectPriceForSale - SKY: {has_promotion: false, is_combo_display: false, is_combo_item: true, unit_price: 17822.580645161288, product_sale_price: 25000, …}
-EmployeeAddSaleModal.tsx:97 ✅ EMPLOYEE: Usando precio combo item: 17822.580645161288
-EmployeeAddSaleModal.tsx:495 💰 EMPLOYEE SALE DATA - SKY: {hasPromotion: false, originalItemPrice: 17822.580645161288, correctPrice: 17822.580645161288, productSalePrice: 25000, productCostPrice: undefined, …}
-employeeSalesService.ts:101 Creating employee sale with data: {p_items: Array(2), p_payment_method: 'transfer', p_payment_details: null, p_discount_amount: 0, p_notes: null}
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-useEmployeeSales.ts:202 Employee view - Sale change detected: {schema: 'public', table: 'sales', commit_timestamp: '2025-09-26T06:41:15.834Z', eventType: 'INSERT', new: {…}, …}
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
-EmployeeAddSaleModal.tsx:945 🔍 EMPLEADO: Iniciando validación de stock del botón...
-EmployeeAddSaleModal.tsx:946   Items en carrito: []
-EmployeeAddSaleModal.tsx:973   Resumen de stock por producto:
-EmployeeAddSaleModal.tsx:986 ✅ EMPLEADO: Validación de stock OK - botón habilitado
+DEBUG FILTRADO: {saleNumber: '20250924-0003', originalDate: '2025-09-24T00:14:38.82764+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0002', originalDate: '2025-09-24T00:14:12.793353+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0001', originalDate: '2025-09-24T00:13:54.769319+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0028', originalDate: '2025-09-23T11:22:51.174234+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0027', originalDate: '2025-09-23T11:22:50.234454+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0026', originalDate: '2025-09-23T10:46:53.599196+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0025', originalDate: '2025-09-23T10:38:36.951109+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0024', originalDate: '2025-09-23T10:28:35.161452+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0023', originalDate: '2025-09-23T10:24:02.813267+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0022', originalDate: '2025-09-23T10:20:08.980797+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0021', originalDate: '2025-09-23T09:45:03.521733+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0020', originalDate: '2025-09-23T09:41:07.821573+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0019', originalDate: '2025-09-23T09:25:09.494295+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0018', originalDate: '2025-09-23T09:23:23.817724+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0017', originalDate: '2025-09-23T09:15:12.106734+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0016', originalDate: '2025-09-23T08:47:44.449897+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0015', originalDate: '2025-09-23T08:41:50.125418+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0014', originalDate: '2025-09-23T08:41:20.48722+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0013', originalDate: '2025-09-23T08:36:28.686014+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0012', originalDate: '2025-09-23T08:34:45.01049+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0011', originalDate: '2025-09-23T06:06:47.474451+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0010', originalDate: '2025-09-23T05:43:34.155987+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0009', originalDate: '2025-09-23T04:46:50.52507+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0008', originalDate: '2025-09-23T04:38:03.871591+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0007', originalDate: '2025-09-23T04:37:22.39069+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0006', originalDate: '2025-09-23T04:37:07.64295+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0005', originalDate: '2025-09-23T04:25:25.270824+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0004', originalDate: '2025-09-23T04:20:00.160341+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0003', originalDate: '2025-09-23T04:13:47.778003+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0002', originalDate: '2025-09-23T04:13:06.260449+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0001', originalDate: '2025-09-23T03:58:32.782019+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0009', originalDate: '2025-09-22T22:32:01.376301+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0008', originalDate: '2025-09-22T22:29:05.286629+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0007', originalDate: '2025-09-22T22:27:57.353675+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0006', originalDate: '2025-09-22T22:26:07.589593+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0005', originalDate: '2025-09-22T22:18:53.92973+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0004', originalDate: '2025-09-22T22:17:44.683393+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0003', originalDate: '2025-09-22T22:11:54.781649+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0002', originalDate: '2025-09-22T22:06:38.470962+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0001', originalDate: '2025-09-22T21:56:44.872607+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0012', originalDate: '2025-09-25T19:36:44.355636+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0011', originalDate: '2025-09-25T19:35:41.58876+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0010', originalDate: '2025-09-25T19:28:38.595215+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0009', originalDate: '2025-09-25T19:21:43.531613+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0008', originalDate: '2025-09-25T17:43:14.715422+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0007', originalDate: '2025-09-25T17:04:56.264836+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0006', originalDate: '2025-09-25T16:39:28.789096+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0005', originalDate: '2025-09-25T07:23:30.593273+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0004', originalDate: '2025-09-25T07:20:42.257753+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0003', originalDate: '2025-09-25T07:19:53.031858+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0002', originalDate: '2025-09-25T07:18:57.863219+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0001', originalDate: '2025-09-25T07:16:47.662698+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0033', originalDate: '2025-09-24T11:50:55.394058+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0032', originalDate: '2025-09-24T11:01:20.024643+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0031', originalDate: '2025-09-24T10:59:56.541398+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0030', originalDate: '2025-09-24T10:59:08.626677+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0029', originalDate: '2025-09-24T10:56:32.0596+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0028', originalDate: '2025-09-24T10:55:59.343503+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0027', originalDate: '2025-09-24T10:47:47.725709+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0026', originalDate: '2025-09-24T10:41:10.58731+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0025', originalDate: '2025-09-24T10:38:40.375418+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0024', originalDate: '2025-09-24T10:36:55.841085+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0023', originalDate: '2025-09-24T10:33:12.925544+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0022', originalDate: '2025-09-24T10:25:40.128848+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0021', originalDate: '2025-09-24T10:21:29.492372+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0020', originalDate: '2025-09-24T10:17:13.321103+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0019', originalDate: '2025-09-24T10:14:35.027964+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0018', originalDate: '2025-09-24T10:14:06.053625+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0017', originalDate: '2025-09-24T10:12:11.485556+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0016', originalDate: '2025-09-24T10:10:07.285377+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0015', originalDate: '2025-09-24T10:09:36.96398+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0014', originalDate: '2025-09-24T10:05:03.806666+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0013', originalDate: '2025-09-24T10:04:42.920456+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0012', originalDate: '2025-09-24T10:04:29.083429+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0011', originalDate: '2025-09-24T10:04:00.17572+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0010', originalDate: '2025-09-24T10:03:58.355131+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0009', originalDate: '2025-09-24T10:03:20.536084+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0008', originalDate: '2025-09-24T10:02:26.752423+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0007', originalDate: '2025-09-24T09:53:02.652139+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0006', originalDate: '2025-09-24T09:52:34.499571+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0005', originalDate: '2025-09-24T09:35:32.9648+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0004', originalDate: '2025-09-24T00:16:44.403675+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0003', originalDate: '2025-09-24T00:14:38.82764+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0002', originalDate: '2025-09-24T00:14:12.793353+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0001', originalDate: '2025-09-24T00:13:54.769319+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0028', originalDate: '2025-09-23T11:22:51.174234+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0027', originalDate: '2025-09-23T11:22:50.234454+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0026', originalDate: '2025-09-23T10:46:53.599196+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0025', originalDate: '2025-09-23T10:38:36.951109+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0024', originalDate: '2025-09-23T10:28:35.161452+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0023', originalDate: '2025-09-23T10:24:02.813267+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0022', originalDate: '2025-09-23T10:20:08.980797+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0021', originalDate: '2025-09-23T09:45:03.521733+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0020', originalDate: '2025-09-23T09:41:07.821573+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0019', originalDate: '2025-09-23T09:25:09.494295+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0018', originalDate: '2025-09-23T09:23:23.817724+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0017', originalDate: '2025-09-23T09:15:12.106734+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0016', originalDate: '2025-09-23T08:47:44.449897+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0015', originalDate: '2025-09-23T08:41:50.125418+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0014', originalDate: '2025-09-23T08:41:20.48722+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0013', originalDate: '2025-09-23T08:36:28.686014+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0012', originalDate: '2025-09-23T08:34:45.01049+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0011', originalDate: '2025-09-23T06:06:47.474451+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0010', originalDate: '2025-09-23T05:43:34.155987+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0009', originalDate: '2025-09-23T04:46:50.52507+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0008', originalDate: '2025-09-23T04:38:03.871591+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0007', originalDate: '2025-09-23T04:37:22.39069+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0006', originalDate: '2025-09-23T04:37:07.64295+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0005', originalDate: '2025-09-23T04:25:25.270824+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0004', originalDate: '2025-09-23T04:20:00.160341+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0003', originalDate: '2025-09-23T04:13:47.778003+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0002', originalDate: '2025-09-23T04:13:06.260449+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0001', originalDate: '2025-09-23T03:58:32.782019+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0009', originalDate: '2025-09-22T22:32:01.376301+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0008', originalDate: '2025-09-22T22:29:05.286629+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0007', originalDate: '2025-09-22T22:27:57.353675+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0006', originalDate: '2025-09-22T22:26:07.589593+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0005', originalDate: '2025-09-22T22:18:53.92973+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0004', originalDate: '2025-09-22T22:17:44.683393+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0003', originalDate: '2025-09-22T22:11:54.781649+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0002', originalDate: '2025-09-22T22:06:38.470962+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0001', originalDate: '2025-09-22T21:56:44.872607+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0012', originalDate: '2025-09-25T19:36:44.355636+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0011', originalDate: '2025-09-25T19:35:41.58876+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0010', originalDate: '2025-09-25T19:28:38.595215+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0009', originalDate: '2025-09-25T19:21:43.531613+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0008', originalDate: '2025-09-25T17:43:14.715422+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0007', originalDate: '2025-09-25T17:04:56.264836+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0006', originalDate: '2025-09-25T16:39:28.789096+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0005', originalDate: '2025-09-25T07:23:30.593273+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0004', originalDate: '2025-09-25T07:20:42.257753+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0003', originalDate: '2025-09-25T07:19:53.031858+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0002', originalDate: '2025-09-25T07:18:57.863219+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250925-0001', originalDate: '2025-09-25T07:16:47.662698+00:00', saleDateStr: '2025-09-25', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0033', originalDate: '2025-09-24T11:50:55.394058+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0032', originalDate: '2025-09-24T11:01:20.024643+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0031', originalDate: '2025-09-24T10:59:56.541398+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0030', originalDate: '2025-09-24T10:59:08.626677+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0029', originalDate: '2025-09-24T10:56:32.0596+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0028', originalDate: '2025-09-24T10:55:59.343503+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0027', originalDate: '2025-09-24T10:47:47.725709+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0026', originalDate: '2025-09-24T10:41:10.58731+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0025', originalDate: '2025-09-24T10:38:40.375418+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0024', originalDate: '2025-09-24T10:36:55.841085+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0023', originalDate: '2025-09-24T10:33:12.925544+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0022', originalDate: '2025-09-24T10:25:40.128848+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0021', originalDate: '2025-09-24T10:21:29.492372+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0020', originalDate: '2025-09-24T10:17:13.321103+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0019', originalDate: '2025-09-24T10:14:35.027964+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0018', originalDate: '2025-09-24T10:14:06.053625+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0017', originalDate: '2025-09-24T10:12:11.485556+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0016', originalDate: '2025-09-24T10:10:07.285377+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0015', originalDate: '2025-09-24T10:09:36.96398+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0014', originalDate: '2025-09-24T10:05:03.806666+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0013', originalDate: '2025-09-24T10:04:42.920456+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0012', originalDate: '2025-09-24T10:04:29.083429+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0011', originalDate: '2025-09-24T10:04:00.17572+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0010', originalDate: '2025-09-24T10:03:58.355131+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0009', originalDate: '2025-09-24T10:03:20.536084+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0008', originalDate: '2025-09-24T10:02:26.752423+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0007', originalDate: '2025-09-24T09:53:02.652139+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0006', originalDate: '2025-09-24T09:52:34.499571+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0005', originalDate: '2025-09-24T09:35:32.9648+00:00', saleDateStr: '2025-09-24', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0004', originalDate: '2025-09-24T00:16:44.403675+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0003', originalDate: '2025-09-24T00:14:38.82764+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0002', originalDate: '2025-09-24T00:14:12.793353+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250924-0001', originalDate: '2025-09-24T00:13:54.769319+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0028', originalDate: '2025-09-23T11:22:51.174234+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0027', originalDate: '2025-09-23T11:22:50.234454+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0026', originalDate: '2025-09-23T10:46:53.599196+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0025', originalDate: '2025-09-23T10:38:36.951109+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0024', originalDate: '2025-09-23T10:28:35.161452+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0023', originalDate: '2025-09-23T10:24:02.813267+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0022', originalDate: '2025-09-23T10:20:08.980797+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0021', originalDate: '2025-09-23T09:45:03.521733+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0020', originalDate: '2025-09-23T09:41:07.821573+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0019', originalDate: '2025-09-23T09:25:09.494295+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0018', originalDate: '2025-09-23T09:23:23.817724+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0017', originalDate: '2025-09-23T09:15:12.106734+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0016', originalDate: '2025-09-23T08:47:44.449897+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0015', originalDate: '2025-09-23T08:41:50.125418+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0014', originalDate: '2025-09-23T08:41:20.48722+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0013', originalDate: '2025-09-23T08:36:28.686014+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0012', originalDate: '2025-09-23T08:34:45.01049+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0011', originalDate: '2025-09-23T06:06:47.474451+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0010', originalDate: '2025-09-23T05:43:34.155987+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0009', originalDate: '2025-09-23T04:46:50.52507+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0008', originalDate: '2025-09-23T04:38:03.871591+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0007', originalDate: '2025-09-23T04:37:22.39069+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0006', originalDate: '2025-09-23T04:37:07.64295+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0005', originalDate: '2025-09-23T04:25:25.270824+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0004', originalDate: '2025-09-23T04:20:00.160341+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0003', originalDate: '2025-09-23T04:13:47.778003+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0002', originalDate: '2025-09-23T04:13:06.260449+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250923-0001', originalDate: '2025-09-23T03:58:32.782019+00:00', saleDateStr: '2025-09-23', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0009', originalDate: '2025-09-22T22:32:01.376301+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0008', originalDate: '2025-09-22T22:29:05.286629+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0007', originalDate: '2025-09-22T22:27:57.353675+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0006', originalDate: '2025-09-22T22:26:07.589593+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0005', originalDate: '2025-09-22T22:18:53.92973+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0004', originalDate: '2025-09-22T22:17:44.683393+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0003', originalDate: '2025-09-22T22:11:54.781649+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0002', originalDate: '2025-09-22T22:06:38.470962+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
+useSales.ts:195 🔍 DEBUG FILTRADO: {saleNumber: '20250922-0001', originalDate: '2025-09-22T21:56:44.872607+00:00', saleDateStr: '2025-09-22', startDate: '2025-09-24', endDate: '2025-09-24', …}
