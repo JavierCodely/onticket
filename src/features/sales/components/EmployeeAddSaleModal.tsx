@@ -285,6 +285,9 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     notes: ''
   });
 
+  // Estado para la calculadora de vuelto
+  const [receivedAmount, setReceivedAmount] = useState<number>(0);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stockConflicts, setStockConflicts] = useState<{productId: string, productName: string, requested: number, available: number}[]>([]);
@@ -700,6 +703,9 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
   }, 0);
   const total = subtotal - formData.discount_amount;
 
+  // Calcular vuelto (después de que total esté definido)
+  const changeAmount = receivedAmount - total;
+
   useEffect(() => {
     if (!isOpen) {
       setFormData({
@@ -710,6 +716,7 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       setItems([]);
       setSearchTerm('');
       setStockConflicts([]);
+      setReceivedAmount(0);
     }
   }, [isOpen]);
 
@@ -1382,9 +1389,13 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                   <Label className="text-sm font-medium">Método de pago</Label>
                   <Select
                     value={formData.payment_method}
-                    onValueChange={(value: 'cash' | 'transfer' | 'credit' | 'debit') =>
-                      setFormData(prev => ({ ...prev, payment_method: value }))
-                    }
+                    onValueChange={(value: 'cash' | 'transfer' | 'credit' | 'debit') => {
+                      setFormData(prev => ({ ...prev, payment_method: value }));
+                      // Resetear el monto recibido cuando cambia el método de pago
+                      if (value !== 'cash') {
+                        setReceivedAmount(0);
+                      }
+                    }}
                   >
                     <SelectTrigger className="h-9">
                       <SelectValue placeholder="Método" />
@@ -1419,6 +1430,107 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Calculadora de vuelto - Solo para efectivo */}
+              {formData.payment_method === 'cash' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <Label className="text-sm font-medium text-green-800">Calculadora de Vuelto</Label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-700">Total a pagar:</span>
+                      <span className="font-semibold text-green-800">${total.toFixed(2)}</span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium text-green-700">Monto recibido</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder={`${total.toFixed(2)}`}
+                        value={receivedAmount || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setReceivedAmount(value === '' ? 0 : parseNumberInput(value));
+                        }}
+                        className="h-9 text-center font-medium"
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
+
+                    {/* Botones rápidos */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReceivedAmount(total)}
+                        className="text-xs"
+                      >
+                        Exacto
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReceivedAmount(Math.ceil(total / 100) * 100)}
+                        className="text-xs"
+                      >
+                        +${(Math.ceil(total / 100) * 100 - total).toFixed(0)}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReceivedAmount(Math.ceil(total / 500) * 500)}
+                        className="text-xs"
+                      >
+                        +${(Math.ceil(total / 500) * 500 - total).toFixed(0)}
+                      </Button>
+                    </div>
+
+                    {/* Resultado del vuelto */}
+                    {receivedAmount > 0 && (
+                      <div className={`p-3 rounded-lg border-2 ${
+                        changeAmount >= 0
+                          ? 'bg-green-100 border-green-300'
+                          : 'bg-red-100 border-red-300'
+                      }`}>
+                        <div className="text-center">
+                          {changeAmount > 0 && (
+                            <>
+                              <div className="text-sm text-green-700 mb-1">Vuelto a entregar:</div>
+                              <div className="text-2xl font-bold text-green-800">
+                                ${changeAmount.toFixed(2)}
+                              </div>
+                            </>
+                          )}
+                          {changeAmount === 0 && (
+                            <>
+                              <div className="text-sm text-green-700 mb-1">✅ Pago exacto</div>
+                              <div className="text-lg font-semibold text-green-800">
+                                Sin vuelto
+                              </div>
+                            </>
+                          )}
+                          {changeAmount < 0 && (
+                            <>
+                              <div className="text-sm text-red-700 mb-1">❌ Monto insuficiente</div>
+                              <div className="text-lg font-semibold text-red-800">
+                                Faltan ${Math.abs(changeAmount).toFixed(2)}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Notas */}
               <div className="space-y-1.5">
@@ -1954,8 +2066,24 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
           <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="h-9 px-4">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || items.length === 0 || hasItemsWithoutStock} className="h-9 px-4">
-            {isSubmitting ? 'Creando...' : hasItemsWithoutStock ? 'Sin Stock Suficiente' : 'Crear Venta'}
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              isSubmitting ||
+              items.length === 0 ||
+              hasItemsWithoutStock ||
+              (formData.payment_method === 'cash' && receivedAmount > 0 && changeAmount < 0)
+            }
+            className="h-9 px-4"
+          >
+            {isSubmitting
+              ? 'Creando...'
+              : hasItemsWithoutStock
+                ? 'Sin Stock Suficiente'
+                : (formData.payment_method === 'cash' && receivedAmount > 0 && changeAmount < 0)
+                  ? 'Monto Insuficiente'
+                  : 'Crear Venta'
+            }
           </Button>
         </DialogFooter>
       </DialogContent>
