@@ -183,27 +183,16 @@ export const useSales = () => {
       const matchesStatus = !status || sale.status === status;
       const matchesEmployee = !employeeName || sale.employee_name.toLowerCase().includes(employeeName.toLowerCase());
 
-      // Filtro por fechas - extraer fecha local sin conversión UTC
-      // Usar el número de la venta que ya tiene la fecha correcta, o extraer de forma local
+      // Filtro por fechas - usar solo la fecha de sale_date sin conversiones UTC
       let saleDateStr = '';
 
-      if (sale.sale_number && sale.sale_number.includes('-')) {
-        // Extraer fecha del número de venta que ya está correcto (YYYYMMDD-XXXX)
-        const datePart = sale.sale_number.split('-')[0];
-        if (datePart.length === 8) {
-          const year = datePart.substring(0, 4);
-          const month = datePart.substring(4, 6);
-          const day = datePart.substring(6, 8);
-          saleDateStr = `${year}-${month}-${day}`;
-        }
-      }
-
-      // Fallback: usar método alternativo si no se pudo extraer del número
-      if (!saleDateStr) {
-        // Crear fecha en zona horaria local interpretando la cadena como local
-        const parts = sale.sale_date.split('T')[0]; // Solo la parte de fecha
-        saleDateStr = parts;
-      }
+      // Extraer fecha directamente de sale_date (formato ISO) y convertir a fecha local
+      const saleDate = new Date(sale.sale_date);
+      // Formatear como YYYY-MM-DD usando la fecha local
+      const year = saleDate.getFullYear();
+      const month = String(saleDate.getMonth() + 1).padStart(2, '0');
+      const day = String(saleDate.getDate()).padStart(2, '0');
+      saleDateStr = `${year}-${month}-${day}`;
 
       const matchesStartDate = !startDate || saleDateStr >= startDate;
       const matchesEndDate = !endDate || saleDateStr <= endDate;

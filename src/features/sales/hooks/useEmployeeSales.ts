@@ -114,13 +114,18 @@ export const useEmployeeSales = () => {
 
       // Date range filter
       if (startDate || endDate) {
-        const saleDate = new Date(sale.sale_date).toISOString().split('T')[0];
+        // Extraer fecha directamente de sale_date y formatear como fecha local
+        const saleDate = new Date(sale.sale_date);
+        const year = saleDate.getFullYear();
+        const month = String(saleDate.getMonth() + 1).padStart(2, '0');
+        const day = String(saleDate.getDate()).padStart(2, '0');
+        const saleDateStr = `${year}-${month}-${day}`;
 
-        if (startDate && saleDate < startDate) {
+        if (startDate && saleDateStr < startDate) {
           return false;
         }
 
-        if (endDate && saleDate > endDate) {
+        if (endDate && saleDateStr > endDate) {
           return false;
         }
       }
