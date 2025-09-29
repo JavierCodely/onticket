@@ -19,8 +19,8 @@ export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Ruta a la que redirigir después del login (redirigir a raíz para que el RootRedirect maneje el rol)
-  const from = location.state?.from?.pathname || '/';
+  // Después del login, siempre ir a la raíz para que RootRedirect maneje el rol correctamente
+  // Esto evita problemas cuando un usuario va a /admin sin login y luego se loguea como empleado
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +29,8 @@ export const LoginForm: React.FC = () => {
 
     try {
       await login({ email, password });
-      navigate(from, { replace: true });
+      // Siempre redirigir a la raíz para que RootRedirect determine la ruta correcta según el rol
+      navigate('/', { replace: true });
     } catch (error: any) {
       console.error('Login error:', error);
       

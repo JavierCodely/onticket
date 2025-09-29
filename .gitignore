@@ -7,10 +7,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+jspm_packages/
+
+# Build outputs
 dist
 dist-ssr
+build
+out
 *.local
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.backup
+
+# Vercel
+.vercel
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +39,39 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cache directories
+.cache
+.parcel-cache
+.next
+.nuxt
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Testing
+coverage
+.nyc_output
+
+# TypeScript
+*.tsbuildinfo
+
+# Security files
+*.pem
+*.key
+*.crt
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Database
+*.db
+*.sqlite
+
+# OS generated files
+Thumbs.db
+.DS_Store

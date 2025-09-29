@@ -278,6 +278,60 @@ export class CombosService {
   }
 
   /**
+   * Función para pausar automáticamente combos que llegaron al límite de usos
+   */
+  static async pauseCombosAtLimit(): Promise<void> {
+    try {
+      console.log('🔄 CombosService.pauseCombosAtLimit iniciado...');
+
+      // Obtener combos activos que tienen límite de usos
+      const { data: combosWithLimits, error } = await supabase
+        .from('combos_with_details')
+        .select('id, name, status, total_usage_limit, current_uses')
+        .eq('status', 'active')
+        .not('total_usage_limit', 'is', null)
+        .gt('total_usage_limit', 0);
+
+      if (error) {
+        throw new Error(`Error al obtener combos con límites: ${error.message}`);
+      }
+
+      if (!combosWithLimits || combosWithLimits.length === 0) {
+        console.log('ℹ️ No hay combos activos con límites de uso');
+        return;
+      }
+
+      console.log(`🔍 Encontrados ${combosWithLimits.length} combos con límites para revisar`);
+
+      let pausedCount = 0;
+
+      for (const combo of combosWithLimits) {
+        const currentUses = combo.current_uses || 0;
+        const totalLimit = combo.total_usage_limit || 0;
+
+        if (currentUses >= totalLimit) {
+          console.log(`🛑 Pausando combo "${combo.name}" (${currentUses}/${totalLimit} usos)`);
+
+          try {
+            await this.toggleComboStatus(combo.id, 'paused');
+            pausedCount++;
+            console.log(`✅ Combo "${combo.name}" pausado exitosamente`);
+          } catch (error) {
+            console.error(`❌ Error pausando combo "${combo.name}":`, error);
+          }
+        } else {
+          console.log(`✅ Combo "${combo.name}" dentro del límite (${currentUses}/${totalLimit} usos)`);
+        }
+      }
+
+      console.log(`✅ CombosService.pauseCombosAtLimit completado: ${pausedCount} combos pausados`);
+    } catch (error) {
+      console.error('❌ Error en CombosService.pauseCombosAtLimit:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Validar stock del combo antes de venta
    */
   static async validateComboStock(comboId: string, quantity: number = 1): Promise<ComboValidationResult> {

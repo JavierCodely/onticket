@@ -1,0 +1,17 @@
+# Redirect all traffic to index.html for client-side routing
+/*    /index.html   200
+
+# Security headers
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# API routes (if any future backend is added)
+/api/*  /api/:splat  200
+
+# Static assets caching
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

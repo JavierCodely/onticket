@@ -115,7 +115,14 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
   const fetchCombos = useCallback(async () => {
     try {
       const combos = await CombosService.getActiveCombos();
-      console.log('🔍 EMPLEADO: Combos cargados desde servicio:', combos.map(c => ({ id: c.id, name: c.name })));
+      console.log('🔍 EMPLEADO: Combos cargados desde servicio:', combos.map(c => ({
+        id: c.id,
+        name: c.name,
+        current_uses: c.current_uses,
+        total_usage_limit: c.total_usage_limit,
+        is_available: c.is_available,
+        effective_stock: c.effective_stock
+      })));
 
       // Verificar duplicados
       const ids = combos.map(c => c.id);
@@ -146,13 +153,38 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
       savings_amount: combo.savings_amount,
       savings_percentage: combo.savings_percentage,
       combo_items: combo.combo_items,
-      effective_stock: combo.effective_stock
+      effective_stock: combo.effective_stock,
+      is_available: combo.is_available,
+      current_uses: combo.current_uses,
+      total_usage_limit: combo.total_usage_limit
     });
+
+    // Verificar si el combo está disponible
+    if (!combo.is_available) {
+      alert(`Este combo no está disponible en este momento.`);
+      return;
+    }
 
     // Verificar si el combo tiene stock disponible
     if (combo.effective_stock <= 0) {
       alert(`Este combo no tiene stock disponible.`);
       return;
+    }
+
+    // Verificar límite de usos si existe
+    if (combo.total_usage_limit && combo.total_usage_limit > 0) {
+      const currentUses = combo.current_uses || 0;
+      if (currentUses >= combo.total_usage_limit) {
+        alert(`Este combo ha alcanzado su límite máximo de usos (${combo.total_usage_limit} usos).`);
+        return;
+      }
+
+      const remainingUses = combo.total_usage_limit - currentUses;
+      if (remainingUses <= 3) {
+        // Mostrar advertencia cuando quedan pocos usos
+        const confirmed = confirm(`Este combo tiene solo ${remainingUses} usos restantes de ${combo.total_usage_limit}. ¿Deseas continuar?`);
+        if (!confirmed) return;
+      }
     }
 
     // Verificar si ya se alcanzó el límite máximo de este combo
@@ -293,10 +325,47 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
   const [stockConflicts, setStockConflicts] = useState<{productId: string, productName: string, requested: number, available: number}[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Cargar combos cuando se abre el modal
+  // Cargar combos cuando se abre el modal y configurar realtime
   useEffect(() => {
     if (isOpen) {
       fetchCombos();
+
+      // Configurar subscripción realtime para combos
+      console.log('🔄 EMPLOYEE: Configurando realtime para combos...');
+      const subscription = supabase
+        .channel('employee_combos_channel')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'combos'
+        }, (payload) => {
+          console.log('🔄 EMPLOYEE: Cambio detectado en combos:', payload);
+
+          // Refrescar combos cuando hay cambios
+          setTimeout(() => {
+            fetchCombos();
+          }, 1000);
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'sales'
+        }, (payload) => {
+          console.log('🔄 EMPLOYEE: Cambio detectado en ventas (puede afectar uso de combos):', payload);
+
+          // Refrescar combos cuando hay ventas (actualiza current_uses)
+          setTimeout(() => {
+            fetchCombos();
+          }, 1000);
+        })
+        .subscribe((status) => {
+          console.log('🔄 EMPLOYEE: Estado de suscripción combos:', status);
+        });
+
+      return () => {
+        console.log('🔄 EMPLOYEE: Limpiando suscripción de combos...');
+        subscription.unsubscribe();
+      };
     }
   }, [isOpen, fetchCombos]);
 
@@ -577,6 +646,19 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
           notes: ''
         });
         setSearchTerm('');
+
+        // Pausar combos que llegaron al límite y actualizar lista
+        setTimeout(async () => {
+          try {
+            await CombosService.pauseCombosAtLimit();
+            await fetchCombos();
+          } catch (error) {
+            console.error('Error pausando combos al límite:', error);
+            // Fallback: solo refrescar
+            await fetchCombos();
+          }
+        }, 500);
+
         onClose();
       }
     } catch (err) {
@@ -649,7 +731,7 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     return true; // Para otros tipos de promociones
   }) : [];
 
-  // Filtrar combos que coincidan con la búsqueda
+  // Filtrar combos que coincidan con la búsqueda - COPIA EXACTA DE ADMIN
   const availableCombos_filtered = searchTerm ? availableCombos.filter(combo => {
     const isAvailable = combo.status === 'active';
     const hasStock = combo.effective_stock > 0;
@@ -658,16 +740,6 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
     console.log(`🔍 EMPLEADO: Evaluando combo "${combo.name}" (ID: ${combo.id}):`, {
       isAvailable,
       hasStock,
-      matchesSearch,
-      searchTerm,
-      willShow: isAvailable && hasStock && matchesSearch
-    });
-
-    console.log(`🔍 Employee Filtro combo "${combo.name}":`, {
-      status: combo.status,
-      isAvailable,
-      hasStock,
-      effective_stock: combo.effective_stock,
       matchesSearch,
       searchTerm,
       willShow: isAvailable && hasStock && matchesSearch
@@ -1622,18 +1694,40 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                   ))}
 
                   {/* Combos */}
-                  {availableCombos_filtered.map((combo) => (
-                    <div
-                      key={combo.id}
-                      className="p-3 hover:bg-purple-50 border border-purple-200 rounded-md mb-2 bg-purple-25"
-                    >
+                  {availableCombos_filtered.map((combo) => {
+                    const hasReachedLimit = combo.total_usage_limit && combo.total_usage_limit > 0 && (combo.current_uses || 0) >= combo.total_usage_limit;
+                    const isLowOnUses = combo.total_usage_limit && combo.total_usage_limit > 0 && ((combo.total_usage_limit - (combo.current_uses || 0)) <= 3);
+
+                    return (
+                      <div
+                        key={combo.id}
+                        className={`p-3 border border-purple-200 rounded-md mb-2 ${
+                          hasReachedLimit
+                            ? 'bg-gray-100 opacity-60'
+                            : isLowOnUses
+                              ? 'bg-orange-50 hover:bg-orange-100 border-orange-200'
+                              : 'hover:bg-purple-50 bg-purple-25'
+                        }`}
+                      >
                       <div className="flex justify-between items-start">
                         <div className="flex-1 cursor-pointer" onClick={() => handleAddComboToCart(combo)}>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold text-sm text-purple-700">{combo.name}</p>
                             <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">
                               COMBO
                             </span>
+                            {/* Mostrar límite de usos si existe */}
+                            {combo.total_usage_limit && combo.total_usage_limit > 0 && (
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                (combo.current_uses || 0) >= combo.total_usage_limit
+                                  ? 'bg-red-100 text-red-700'
+                                  : ((combo.total_usage_limit - (combo.current_uses || 0)) <= 3)
+                                    ? 'bg-orange-100 text-orange-700'
+                                    : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {combo.current_uses || 0}/{combo.total_usage_limit} usos
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-gray-600 mt-1">{combo.description}</p>
 
@@ -1711,14 +1805,23 @@ export const EmployeeAddSaleModal: React.FC<EmployeeAddSaleModalProps> = ({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 w-8 p-0 border-purple-200 text-purple-600 hover:bg-purple-100"
-                          onClick={() => handleAddComboToCart(combo)}
+                          disabled={hasReachedLimit}
+                          className={`h-8 w-8 p-0 ${
+                            hasReachedLimit
+                              ? 'border-gray-300 text-gray-400 cursor-not-allowed'
+                              : isLowOnUses
+                                ? 'border-orange-300 text-orange-600 hover:bg-orange-100'
+                                : 'border-purple-200 text-purple-600 hover:bg-purple-100'
+                          }`}
+                          onClick={() => !hasReachedLimit && handleAddComboToCart(combo)}
+                          title={hasReachedLimit ? 'Combo sin usos disponibles' : isLowOnUses ? 'Pocos usos restantes' : 'Agregar combo'}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  )
+                })}
 
                   {/* Productos normales */}
                   {availableProducts.map((product) => {
