@@ -1,0 +1,23 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	symlinks = false
+	ignorecase = true
+[remote "origin"]
+	url = https://github.com/JavierCodely/onticket.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[branch "claude"]
+	vscode-merge-base = origin/main
+	vscode-merge-base = origin/main
+	remote = origin
+	merge = refs/heads/claude
+[branch "empleados"]
+	vscode-merge-base = origin/claude
+	vscode-merge-base = origin/claude
+	remote = origin
+	merge = refs/heads/empleados

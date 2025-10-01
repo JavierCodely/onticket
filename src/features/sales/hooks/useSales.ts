@@ -1,0 +1,317 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '@/core/config/supabase';
+import { salesService } from '../services/salesService';
+import type {
+  SaleWithDetails,
+  CreateSaleData,
+  UpdateSaleData,
+  SaleStats,
+  PaymentMethod,
+  SaleStatus
+} from '../types';
+
+export const useSales = () => {
+  const [sales, setSales] = useState<SaleWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<Array<{ user_id: string; full_name: string; category: string; }>>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentDateRange, setCurrentDateRange] = useState<{start?: string; end?: string}>({});
+  const subscriptionRef = useRef<any>(null);
+
+  const loadSales = useCallback(async (startDate?: string, endDate?: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Actualizar el rango de fechas actual
+      setCurrentDateRange({ start: startDate, end: endDate });
+      const data = await salesService.getSales(startDate, endDate);
+      setSales(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
+      console.error('Error loading sales:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadTodaySales = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await salesService.getTodaySales();
+      setSales(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
+      console.error('Error loading today sales:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadEmployees = useCallback(async () => {
+    try {
+      const data = await salesService.getEmployeesForSale();
+      setEmployees(data);
+    } catch (err) {
+      console.error('Error loading employees:', err);
+    }
+  }, []);
+
+  const createSale = useCallback(async (saleData: CreateSaleData) => {
+    try {
+      setError(null);
+      const saleId = await salesService.createSale(saleData);
+      // Recargar usando el rango de fechas actual
+      await loadSales(currentDateRange.start, currentDateRange.end);
+      return saleId;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear venta';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [loadSales, currentDateRange]);
+
+  const updateSale = useCallback(async (saleId: string, updateData: UpdateSaleData) => {
+    try {
+      setError(null);
+      const success = await salesService.updateSale(saleId, updateData);
+      if (success) {
+        // Recargar usando el rango de fechas actual
+        await loadSales(currentDateRange.start, currentDateRange.end);
+      }
+      return success;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar venta';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [loadSales, currentDateRange]);
+
+  const addSaleItem = useCallback(async (saleId: string, productId: string, quantity: number, unitPrice?: number) => {
+    try {
+      setError(null);
+      const itemId = await salesService.addSaleItem(saleId, productId, quantity, unitPrice);
+      // Recargar usando el rango de fechas actual
+      await loadSales(currentDateRange.start, currentDateRange.end);
+      return itemId;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al agregar item';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [loadSales, currentDateRange]);
+
+  const updateSaleItem = useCallback(async (itemId: string, quantity?: number, unitPrice?: number): Promise<void> => {
+    try {
+      setError(null);
+      await salesService.updateSaleItem(itemId, quantity, unitPrice);
+      // Recargar usando el rango de fechas actual
+      await loadSales(currentDateRange.start, currentDateRange.end);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar item';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [loadSales, currentDateRange]);
+
+  const removeSaleItem = useCallback(async (itemId: string): Promise<void> => {
+    try {
+      setError(null);
+      await salesService.removeSaleItem(itemId);
+      // Recargar usando el rango de fechas actual
+      await loadSales(currentDateRange.start, currentDateRange.end);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar item';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [loadSales, currentDateRange]);
+
+  const refundSale = useCallback(async (saleId: string, reason: string): Promise<boolean> => {
+    try {
+      setError(null);
+      const success = await salesService.refundSale(saleId, reason);
+      if (success) {
+        // Recargar usando la fecha actual específica para evitar problemas de zona horaria
+        const today = new Date();
+        const localDateString = today.getFullYear() + '-' +
+          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+          String(today.getDate()).padStart(2, '0');
+        await loadSales(localDateString, localDateString);
+      }
+      return success;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al reembolsar venta';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [loadSales]);
+
+  const getSalesStats = useCallback(async (startDate?: string, endDate?: string): Promise<SaleStats> => {
+    try {
+      return await salesService.getSalesStats(startDate, endDate);
+    } catch (err) {
+      console.error('Error getting sales stats:', err);
+      return {
+        total_sales: 0,
+        total_amount: 0,
+        avg_sale_amount: 0,
+        payment_methods: {},
+        employees: {}
+      };
+    }
+  }, []);
+
+  const filterSales = useCallback((
+    searchTerm: string = '',
+    paymentMethod?: PaymentMethod,
+    status?: SaleStatus,
+    employeeName?: string,
+    startDate?: string,
+    endDate?: string
+  ) => {
+    return sales.filter((sale) => {
+      const matchesSearch = !searchTerm ||
+        sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sale.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sale.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesPaymentMethod = !paymentMethod || sale.payment_method === paymentMethod;
+      const matchesStatus = !status || sale.status === status;
+      const matchesEmployee = !employeeName || sale.employee_name.toLowerCase().includes(employeeName.toLowerCase());
+
+      // Filtro por fechas - usar solo la fecha de sale_date sin conversiones UTC
+      let saleDateStr = '';
+
+      // Extraer fecha directamente de sale_date (formato ISO) y convertir a fecha local
+      const saleDate = new Date(sale.sale_date);
+      // Formatear como YYYY-MM-DD usando la fecha local
+      const year = saleDate.getFullYear();
+      const month = String(saleDate.getMonth() + 1).padStart(2, '0');
+      const day = String(saleDate.getDate()).padStart(2, '0');
+      saleDateStr = `${year}-${month}-${day}`;
+
+      const matchesStartDate = !startDate || saleDateStr >= startDate;
+      const matchesEndDate = !endDate || saleDateStr <= endDate;
+
+      return matchesSearch && matchesPaymentMethod && matchesStatus && matchesEmployee && matchesStartDate && matchesEndDate;
+    });
+  }, [sales]);
+
+  const getSalesStatsFromData = useCallback(() => {
+    // Solo incluir ventas completadas en las estadísticas principales
+    const completedSales = sales.filter(s => s.status === 'completed');
+
+    const totalSales = completedSales.length;
+    const totalAmount = completedSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+    const avgSaleAmount = totalSales > 0 ? totalAmount / totalSales : 0;
+
+    const paymentMethods = completedSales.reduce((acc, sale) => {
+      if (!acc[sale.payment_method]) {
+        acc[sale.payment_method] = { count: 0, amount: 0 };
+      }
+      acc[sale.payment_method].count += 1;
+      acc[sale.payment_method].amount += sale.total_amount;
+      return acc;
+    }, {} as Partial<Record<PaymentMethod, { count: number; amount: number }>>);
+
+    const employees = completedSales.reduce((acc, sale) => {
+      if (!acc[sale.employee_name]) {
+        acc[sale.employee_name] = { count: 0, amount: 0 };
+      }
+      acc[sale.employee_name].count += 1;
+      acc[sale.employee_name].amount += sale.total_amount;
+      return acc;
+    }, {} as Record<string, { count: number; amount: number }>);
+
+    return {
+      totalSales,
+      totalAmount,
+      avgSaleAmount,
+      paymentMethods,
+      employees,
+      completedSales: sales.filter(s => s.status === 'completed').length,
+      cancelledSales: sales.filter(s => s.status === 'cancelled').length,
+      refundedSales: sales.filter(s => s.status === 'refunded').length
+    };
+  }, [sales]);
+
+  // Función para configurar subscripción en tiempo real
+  const setupRealtimeSubscription = useCallback(() => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+    }
+
+    subscriptionRef.current = supabase
+      .channel('sales-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sales'
+        },
+        async (payload) => {
+          console.log('Sale change detected:', payload);
+
+          // Solo actualizar si no hay modales abiertos
+          if (!isModalOpen) {
+            try {
+              // Recargar usando el mismo rango de fechas que se está mostrando actualmente
+              const data = await salesService.getSales(currentDateRange.start, currentDateRange.end);
+              setSales(data);
+            } catch (err) {
+              console.error('Error updating sales after realtime change:', err);
+            }
+          }
+        }
+      )
+      .subscribe();
+  }, [isModalOpen]);
+
+  // Funciones para controlar estado de modales
+  const setModalOpen = useCallback((open: boolean) => {
+    setIsModalOpen(open);
+  }, []);
+
+  useEffect(() => {
+    // Cargar ventas del día usando fecha específica para evitar problemas de zona horaria
+    const today = new Date();
+    const localDateString = today.getFullYear() + '-' +
+      String(today.getMonth() + 1).padStart(2, '0') + '-' +
+      String(today.getDate()).padStart(2, '0');
+    loadSales(localDateString, localDateString);
+    loadEmployees();
+    setupRealtimeSubscription();
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+    };
+  }, [loadSales, loadEmployees, setupRealtimeSubscription]);
+
+  return {
+    sales,
+    loading,
+    error,
+    employees,
+    loadSales,
+    loadTodaySales,
+    createSale,
+    updateSale,
+    addSaleItem,
+    updateSaleItem,
+    removeSaleItem,
+    refundSale,
+    getSalesStats,
+    filterSales,
+    getSalesStatsFromData,
+    clearError: () => setError(null),
+    setModalOpen
+  };
+};

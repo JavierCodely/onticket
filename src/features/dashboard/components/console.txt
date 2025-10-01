@@ -1,0 +1,27 @@
+AuthContext updateAuthState: Object
+mdmgewtqnnkiohxdwgkz.supabase.co/rest/v1/employees?select=id&club_id=eq.a6cd26b7-3f7e-47dc-84bf-fd311acfa699&status=eq.active:1  Failed to load resource: the server responded with a status of 400 ()
+useDashboardData.ts:376 Error fetching KPI data: Object
+fetchKPIData @ useDashboardData.ts:376
+2recharts.js?v=e694a163:6162 The width(0) and height(0) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+warn2 @ recharts.js?v=e694a163:6162
+mdmgewtqnnkiohxdwgkz.supabase.co/rest/v1/employees?select=id&club_id=eq.a6cd26b7-3f7e-47dc-84bf-fd311acfa699&status=eq.active:1  Failed to load resource: the server responded with a status of 400 ()
+useDashboardData.ts:376 Error fetching KPI data: Object
+fetchKPIData @ useDashboardData.ts:376
+ThemeCustomization.tsx:34 Uncaught ReferenceError: useTheme is not defined
+    at ThemeCustomization (ThemeCustomization.tsx:34:7)
+    at Object.react_stack_bottom_frame (react-dom_client.js?v=c5b7d354:17424:20)
+    at renderWithHooks (react-dom_client.js?v=c5b7d354:4206:24)
+    at updateFunctionComponent (react-dom_client.js?v=c5b7d354:6619:21)
+    at beginWork (react-dom_client.js?v=c5b7d354:7654:20)
+    at runWithFiberInDEV (react-dom_client.js?v=c5b7d354:1485:72)
+    at performUnitOfWork (react-dom_client.js?v=c5b7d354:10868:98)
+    at workLoopSync (react-dom_client.js?v=c5b7d354:10728:43)
+    at renderRootSync (react-dom_client.js?v=c5b7d354:10711:13)
+    at performWorkOnRoot (react-dom_client.js?v=c5b7d354:10359:46)
+react-dom_client.js?v=c5b7d354:6229 An error occurred in the <ThemeCustomization> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
